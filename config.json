@@ -1,18 +1,20 @@
-// Add this in your Connectors Section of config.json
+// Add this in your Connectors Section
 "communalStatsSql": {
-    "host": "xxx.xxx.xxx.xxx", // Get from Ignis
-    "port": 0, // Get from Ignis
-    "username": "", // Get from Ignis
-    "password": "", // Get from Ignis
-    "database": "squadjscommunalstats",
+    "host": "xxx.xxx.xxx.xxx", // Get this from Ignis
+    "port": 0, // Get this from Ignis
+    "username": "user", // Get this from Ignis
+    "password": "pass", // Get this from Ignis
+    "database": "db", // Get this from Ignis
     "dialect": "mysql"
 }
 
 
-// Add this in your Plugins Section of config.json
+
+// Add this in your Plugins Section
 {
     "plugin": "DBLogCommunalStats",
     "enabled": true,
     "database": "communalStatsSql",
-    "overrideServerID": 0 // Get from Ignis - Do not Modify after setting
+    "overrideOrgID": 0, // Get this from Ignis
+    "overrideServerID": 0 // Get this from Ignis
 }

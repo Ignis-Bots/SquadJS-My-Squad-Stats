@@ -23,6 +23,11 @@ export default class DBLogCommunalStats extends BasePlugin {
         description: 'The Sequelize connector to log server information to.',
         default: 'mysql'
       },
+      overrideOrgID: {
+        required: false,
+        description: 'A overridden organization ID.',
+        default: null
+      },
       overrideServerID: {
         required: false,
         description: 'A overridden server ID.',
@@ -44,6 +49,9 @@ export default class DBLogCommunalStats extends BasePlugin {
       },
       name: {
         type: DataTypes.STRING
+      },
+      orgId: {
+        type: DataTypes.INTEGER
       }
     });
 
@@ -353,7 +361,6 @@ export default class DBLogCommunalStats extends BasePlugin {
     this.onPlayerWounded = this.onPlayerWounded.bind(this);
     this.onPlayerDied = this.onPlayerDied.bind(this);
     this.onPlayerRevived = this.onPlayerRevived.bind(this);
-    this.dropAllForeignKeys = this.dropAllForeignKeys.bind(this);
   }
 
   createModel(name, schema) {
@@ -363,18 +370,14 @@ export default class DBLogCommunalStats extends BasePlugin {
   }
 
   async prepareToMount() {
-    await this.models.Server.sync();
-    await this.models.Match.sync();
-    await this.models.Player.sync();
-    await this.models.Wound.sync();
-    await this.models.Death.sync();
-    await this.models.Revive.sync();
+
   }
 
   async mount() {
     await this.models.Server.upsert({
       id: this.options.overrideServerID || this.server.id,
-      name: this.server.serverName
+      name: this.server.serverName,
+      orgId: this.options.overrideOrgID || this.server.orgID
     });
 
     this.match = await this.models.Match.findOne({
