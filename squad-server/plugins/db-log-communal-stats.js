@@ -2,7 +2,7 @@ import Sequelize from 'sequelize';
 
 import BasePlugin from './base-plugin.js';
 
-const { DataTypes, QueryTypes } = Sequelize;
+const { DataTypes } = Sequelize;
 
 export default class DBLogCommunalStats extends BasePlugin {
   static get description() {
