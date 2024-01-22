@@ -1,7 +1,7 @@
 // Add this in your Connectors Section of config.json
 "communalStatsSql": {
-    "host": "67.222.133.194",
-    "port": 3306,
+    "host": "xxx.xxx.xxx.xxx", // Get from Ignis
+    "port": 0, // Get from Ignis
     "username": "", // Get from Ignis
     "password": "", // Get from Ignis
     "database": "squadjscommunalstats",
