@@ -80,64 +80,6 @@ export default class DBLogCommunalStats extends BasePlugin {
       }
     });
 
-    this.createModel('TickRate', {
-      id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true
-      },
-      time: {
-        type: DataTypes.DATE,
-        notNull: true
-      },
-      tickRate: {
-        type: DataTypes.FLOAT,
-        notNull: true
-      }
-    });
-
-    this.createModel('PlayerCount', {
-      id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true
-      },
-      time: {
-        type: DataTypes.DATE,
-        notNull: true,
-        defaultValue: DataTypes.NOW
-      },
-      players: {
-        type: DataTypes.INTEGER,
-        notNull: true
-      },
-      publicQueue: {
-        type: DataTypes.INTEGER,
-        notNull: true
-      },
-      reserveQueue: {
-        type: DataTypes.INTEGER,
-        notNull: true
-      }
-    });
-
-    this.createModel(
-      'SteamUser',
-      {
-        steamID: {
-          type: DataTypes.STRING,
-          primaryKey: true
-        },
-        lastName: {
-          type: DataTypes.STRING
-        }
-      },
-      {
-        charset: 'utf8mb4',
-        collate: 'utf8mb4_unicode_ci'
-      }
-    );
-
     this.createModel(
       'Player',
       {
@@ -329,16 +271,6 @@ export default class DBLogCommunalStats extends BasePlugin {
       }
     );
 
-    this.models.Server.hasMany(this.models.TickRate, {
-      foreignKey: { name: 'server', allowNull: false },
-      onDelete: 'CASCADE'
-    });
-
-    this.models.Server.hasMany(this.models.PlayerCount, {
-      foreignKey: { name: 'server', allowNull: false },
-      onDelete: 'CASCADE'
-    });
-
     this.models.Server.hasMany(this.models.Match, {
       foreignKey: { name: 'server', allowNull: false },
       onDelete: 'CASCADE'
@@ -401,16 +333,6 @@ export default class DBLogCommunalStats extends BasePlugin {
       onDelete: 'CASCADE'
     });
 
-    this.models.Match.hasMany(this.models.TickRate, {
-      foreignKey: { name: 'match' },
-      onDelete: 'CASCADE'
-    });
-
-    this.models.Match.hasMany(this.models.PlayerCount, {
-      foreignKey: { name: 'match' },
-      onDelete: 'CASCADE'
-    });
-
     this.models.Match.hasMany(this.models.Wound, {
       foreignKey: { name: 'match' },
       onDelete: 'CASCADE'
@@ -426,14 +348,11 @@ export default class DBLogCommunalStats extends BasePlugin {
       onDelete: 'CASCADE'
     });
 
-    this.onTickRate = this.onTickRate.bind(this);
-    this.onUpdatedA2SInformation = this.onUpdatedA2SInformation.bind(this);
     this.onNewGame = this.onNewGame.bind(this);
     this.onPlayerConnected = this.onPlayerConnected.bind(this);
     this.onPlayerWounded = this.onPlayerWounded.bind(this);
     this.onPlayerDied = this.onPlayerDied.bind(this);
     this.onPlayerRevived = this.onPlayerRevived.bind(this);
-    this.migrateSteamUsersIntoPlayers = this.migrateSteamUsersIntoPlayers.bind(this);
     this.dropAllForeignKeys = this.dropAllForeignKeys.bind(this);
   }
 
@@ -446,9 +365,6 @@ export default class DBLogCommunalStats extends BasePlugin {
   async prepareToMount() {
     await this.models.Server.sync();
     await this.models.Match.sync();
-    await this.models.TickRate.sync();
-    await this.models.PlayerCount.sync();
-    await this.models.SteamUser.sync();
     await this.models.Player.sync();
     await this.models.Wound.sync();
     await this.models.Death.sync();
@@ -456,8 +372,6 @@ export default class DBLogCommunalStats extends BasePlugin {
   }
 
   async mount() {
-    await this.migrateSteamUsersIntoPlayers();
-
     await this.models.Server.upsert({
       id: this.options.overrideServerID || this.server.id,
       name: this.server.serverName
@@ -467,8 +381,6 @@ export default class DBLogCommunalStats extends BasePlugin {
       where: { server: this.options.overrideServerID || this.server.id, endTime: null }
     });
 
-    this.server.on('TICK_RATE', this.onTickRate);
-    this.server.on('UPDATED_A2S_INFORMATION', this.onUpdatedA2SInformation);
     this.server.on('NEW_GAME', this.onNewGame);
     this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
     this.server.on('PLAYER_WOUNDED', this.onPlayerWounded);
@@ -477,32 +389,11 @@ export default class DBLogCommunalStats extends BasePlugin {
   }
 
   async unmount() {
-    this.server.removeEventListener('TICK_RATE', this.onTickRate);
-    this.server.removeEventListener('UPDATED_A2S_INFORMATION', this.onTickRate);
     this.server.removeEventListener('NEW_GAME', this.onNewGame);
     this.server.removeEventListener('PLAYER_CONNECTED', this.onPlayerConnected);
     this.server.removeEventListener('PLAYER_WOUNDED', this.onPlayerWounded);
     this.server.removeEventListener('PLAYER_DIED', this.onPlayerDied);
     this.server.removeEventListener('PLAYER_REVIVED', this.onPlayerRevived);
-  }
-
-  async onTickRate(info) {
-    await this.models.TickRate.create({
-      server: this.options.overrideServerID || this.server.id,
-      match: this.match ? this.match.id : null,
-      time: info.time,
-      tickRate: info.tickRate
-    });
-  }
-
-  async onUpdatedA2SInformation(info) {
-    await this.models.PlayerCount.create({
-      server: this.options.overrideServerID || this.server.id,
-      match: this.match ? this.match.id : null,
-      players: info.a2sPlayerCount,
-      publicQueue: info.publicQueue,
-      reserveQueue: info.reserveQueue
-    });
   }
 
   async onNewGame(info) {
@@ -677,76 +568,5 @@ export default class DBLogCommunalStats extends BasePlugin {
         conflictFields: ['steamID']
       }
     );
-  }
-
-  async migrateSteamUsersIntoPlayers() {
-    try {
-      const steamUsersCount = await this.models.SteamUser.count();
-      const playersCount = await this.models.Player.count();
-
-      if (steamUsersCount < playersCount) {
-        this.verbose(
-          1,
-          `Skipping migration from SteamUsers to Players due to a previous successful migration.`
-        );
-        return;
-      }
-
-      await this.dropAllForeignKeys();
-
-      const steamUsers = (await this.models.SteamUser.findAll()).map((u) => u.dataValues);
-      await this.models.Player.bulkCreate(steamUsers);
-
-      this.verbose(1, `Migration from SteamUsers to Players successful`);
-    } catch (error) {
-      this.verbose(1, `Error during Migration from SteamUsers to Players: ${error}`);
-    }
-  }
-
-  async dropAllForeignKeys() {
-    this.verbose(
-      1,
-      `Starting to drop constraints on DB: ${this.options.database.config.database} related to DBLog_SteamUsers deptecated table.`
-    );
-    for (const modelName in this.models) {
-      const model = this.models[modelName];
-      const tableName = model.tableName;
-
-      try {
-        const result = await this.options.database.query(
-          `SELECT * FROM information_schema.key_column_usage WHERE referenced_table_name IS NOT NULL AND table_schema = '${this.options.database.config.database}' AND table_name = '${tableName}';`,
-          { type: QueryTypes.SELECT }
-        );
-
-        for (const r of result) {
-          if (r.REFERENCED_TABLE_NAME === 'DBLog_SteamUsers') {
-            this.verbose(
-              1,
-              `Found constraint ${r.COLUMN_NAME} on table ${tableName}, referencing ${r.REFERENCED_COLUMN_NAME} on ${r.REFERENCED_TABLE_NAME}`
-            );
-
-            await this.options.database
-              .query(`ALTER TABLE ${tableName} DROP FOREIGN KEY ${r.CONSTRAINT_NAME}`, {
-                type: QueryTypes.RAW
-              })
-              .then(() => {
-                this.verbose(1, `Dropped foreign key ${r.COLUMN_NAME} on table ${tableName}`);
-              })
-              .catch((e) => {
-                this.verbose(
-                  1,
-                  `Error dropping foreign key ${r.COLUMN_NAME} on table ${tableName}:`,
-                  e
-                );
-              });
-          }
-        }
-      } catch (error) {
-        this.verbose(1, `Error dropping foreign keys for table ${tableName}:`, error);
-      } finally {
-        model.sync();
-      }
-    }
-    await this.models.Player.sync();
   }
 }
