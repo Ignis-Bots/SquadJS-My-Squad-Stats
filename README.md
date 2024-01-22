@@ -1,4 +1,5 @@
 # THIS PLUGIN IS NOT READY UNTIL THE CORE OF THE COMMUNAL STATS IS COMPLETE - STAY TUNED FOR MORE INFO
+# Join the [Discord](https://discord.gg/HV9VGqmPRq) for more updates on progress.
 
 # Backbone SquadJS Plugin for the Squad Communal Player Stats
 <div align="center">
@@ -12,10 +13,13 @@
 [![GitHub Issues](https://img.shields.io/github/issues/IgnisAlienus/SquadJS-Communal-Player-Stats.svg?style=flat-square)](https://github.com/IgnisAlienus/SquadJS-Communal-Player-Stats/issues)
 [![GitHub Pull Requests](https://img.shields.io/github/issues-pr-raw/IgnisAlienus/SquadJS-Communal-Player-Stats.svg?style=flat-square)](https://github.com/IgnisAlienus/SquadJS-Communal-Player-Stats/pulls)
 [![GitHub Stars](https://img.shields.io/github/stars/IgnisAlienus/SquadJS-Communal-Player-Stats.svg?style=flat-square)](https://github.com/IgnisAlienus/SquadJS-Communal-Player-Stats/stargazers)
-[![Discord](https://img.shields.io/discord/1174357658971668551.svg?style=flat-square&logo=discord)](https://discord.gg/onlybans)
+[![Discord](https://img.shields.io/discord/1174357658971668551.svg?style=flat-square&logo=discord)](https://discord.gg/HV9VGqmPRq)
 
 <br><br>
 </div>
+
+## What it do?
+- This sends your Players Statistics, such as Kills, Deaths, Revives, etc. to Squad Communal Player Stats so that players can see a better totality of their Stats across multiple Servers.
 
 ## How to install:
 - Add `db-log-communal-stats.js` to your `./squad-server/plugins` folder.
