@@ -41,7 +41,7 @@ export default class DBLogMySquadStats extends BasePlugin {
 
     this.models = {};
 
-    this.createModel('Server', {
+    this.models.Server = this.options.database.define('DBLog_Server', {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -55,7 +55,7 @@ export default class DBLogMySquadStats extends BasePlugin {
       }
     });
 
-    this.createModel('Match', {
+    this.models.Match = this.options.database.define('DBLog_Match', {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -88,9 +88,7 @@ export default class DBLogMySquadStats extends BasePlugin {
       }
     });
 
-    this.createModel(
-      'Player',
-      {
+    this.models.Player = this.options.database.define('DBLog_Player', {
         id: {
           type: DataTypes.INTEGER,
           primaryKey: true,
@@ -126,9 +124,7 @@ export default class DBLogMySquadStats extends BasePlugin {
       }
     );
 
-    this.createModel(
-      'Wound',
-      {
+    this.models.Wound = this.options.database.define('DBLog_Wound', {
         id: {
           type: DataTypes.INTEGER,
           primaryKey: true,
@@ -172,9 +168,7 @@ export default class DBLogMySquadStats extends BasePlugin {
       }
     );
 
-    this.createModel(
-      'Death',
-      {
+    this.models.Death = this.options.database.define('DBLog_Death', {
         id: {
           type: DataTypes.INTEGER,
           primaryKey: true,
@@ -221,9 +215,7 @@ export default class DBLogMySquadStats extends BasePlugin {
       }
     );
 
-    this.createModel(
-      'Revive',
-      {
+    this.models.Revive = this.options.database.define('DBLog_Revive', {
         id: {
           type: DataTypes.INTEGER,
           primaryKey: true,
@@ -361,12 +353,6 @@ export default class DBLogMySquadStats extends BasePlugin {
     this.onPlayerWounded = this.onPlayerWounded.bind(this);
     this.onPlayerDied = this.onPlayerDied.bind(this);
     this.onPlayerRevived = this.onPlayerRevived.bind(this);
-  }
-
-  createModel(name, schema) {
-    this.models[name] = this.options.database.define(`DBLog_${name}`, schema, {
-      timestamps: false
-    });
   }
 
   async prepareToMount() {
