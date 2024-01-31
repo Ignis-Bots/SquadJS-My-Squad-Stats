@@ -1,5 +1,5 @@
 // Add this in your Connectors Section
-"communalStatsSql": {
+"mySquadStatsDB": {
     "host": "xxx.xxx.xxx.xxx", // Get this from Ignis
     "port": 0, // Get this from Ignis
     "username": "user", // Get this from Ignis
@@ -12,9 +12,9 @@
 
 // Add this in your Plugins Section
 {
-    "plugin": "DBLogCommunalStats",
+    "plugin": "DBLogMySquadStats",
     "enabled": true,
-    "database": "communalStatsSql",
+    "database": "mySquadStatsDB",
     "overrideOrgID": 0, // Get this from Ignis
     "overrideServerID": 0 // Get this from Ignis
 }

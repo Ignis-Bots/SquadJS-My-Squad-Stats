@@ -4,10 +4,10 @@ import BasePlugin from './base-plugin.js';
 
 const { DataTypes } = Sequelize;
 
-export default class DBLogCommunalStats extends BasePlugin {
+export default class DBLogMySquadStats extends BasePlugin {
   static get description() {
     return (
-      'The <code>DBLogCommunalStats/code> plugin will log various server statistics and events to a central database for player stat tracking'
+      'The <code>DBLogMySquadStats/code> plugin will log various server statistics and events to a central database for player stat tracking'
     );
   }
 
