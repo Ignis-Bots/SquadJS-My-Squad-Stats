@@ -1,5 +1,8 @@
-# THIS PLUGIN IS NOT READY UNTIL THE CORE OF THE COMMUNAL STATS IS COMPLETE - STAY TUNED FOR MORE INFO
+# THIS PLUGIN IS NOT READY UNTIL THE CORE OF MY SQUAD STATS IS COMPLETE - STAY TUNED FOR MORE INFO
 # Join the [Discord](https://discord.gg/HV9VGqmPRq) for more updates on progress.
+
+
+
 
 # Backbone SquadJS Plugin for [My Squad Stats](https://mysquadstats.com)
 <div align="center">

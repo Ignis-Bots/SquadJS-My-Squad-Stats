@@ -389,7 +389,7 @@ export default class DBLogMySquadStats extends BasePlugin {
   // Check if current version is the latest version
   async checkVersion() {
     const owner = 'IgnisAlienus';
-    const repo = 'SquadJS-Communal-Player-Stats';
+    const repo = 'SquadJS-My-Squad-Stats';
     const currentVersion = 'v1.0.0';
 
     try {
