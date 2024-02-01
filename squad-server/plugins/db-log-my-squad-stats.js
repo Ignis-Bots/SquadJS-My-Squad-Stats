@@ -53,6 +53,8 @@ export default class DBLogMySquadStats extends BasePlugin {
       orgId: {
         type: DataTypes.INTEGER
       }
+    }, {
+      timestamps: false // Disable timestamps
     });
 
     this.models.Match = this.options.database.define('DBLog_Match', {
@@ -86,31 +88,34 @@ export default class DBLogMySquadStats extends BasePlugin {
       winner: {
         type: DataTypes.STRING
       }
+    }, {
+      timestamps: false // Disable timestamps
     });
 
     this.models.Player = this.options.database.define('DBLog_Player', {
-        id: {
-          type: DataTypes.INTEGER,
-          primaryKey: true,
-          autoIncrement: true
-        },
-        eosID: {
-          type: DataTypes.STRING,
-          unique: true
-        },
-        steamID: {
-          type: DataTypes.STRING,
-          notNull: true,
-          unique: true
-        },
-        lastName: {
-          type: DataTypes.STRING
-        },
-        lastIP: {
-          type: DataTypes.STRING
-        }
+      id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
       },
+      eosID: {
+        type: DataTypes.STRING,
+        unique: true
+      },
+      steamID: {
+        type: DataTypes.STRING,
+        notNull: true,
+        unique: true
+      },
+      lastName: {
+        type: DataTypes.STRING
+      },
+      lastIP: {
+        type: DataTypes.STRING
+      }
+    },
       {
+        timestamps: false, // Disable timestamps
         charset: 'utf8mb4',
         collate: 'utf8mb4_unicode_ci',
         indexes: [
@@ -125,147 +130,150 @@ export default class DBLogMySquadStats extends BasePlugin {
     );
 
     this.models.Wound = this.options.database.define('DBLog_Wound', {
-        id: {
-          type: DataTypes.INTEGER,
-          primaryKey: true,
-          autoIncrement: true
-        },
-        time: {
-          type: DataTypes.DATE,
-          notNull: true
-        },
-        victimName: {
-          type: DataTypes.STRING
-        },
-        victimTeamID: {
-          type: DataTypes.INTEGER
-        },
-        victimSquadID: {
-          type: DataTypes.INTEGER
-        },
-        attackerName: {
-          type: DataTypes.STRING
-        },
-        attackerTeamID: {
-          type: DataTypes.INTEGER
-        },
-        attackerSquadID: {
-          type: DataTypes.INTEGER
-        },
-        damage: {
-          type: DataTypes.FLOAT
-        },
-        weapon: {
-          type: DataTypes.STRING
-        },
-        teamkill: {
-          type: DataTypes.BOOLEAN
-        }
+      id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
       },
+      time: {
+        type: DataTypes.DATE,
+        notNull: true
+      },
+      victimName: {
+        type: DataTypes.STRING
+      },
+      victimTeamID: {
+        type: DataTypes.INTEGER
+      },
+      victimSquadID: {
+        type: DataTypes.INTEGER
+      },
+      attackerName: {
+        type: DataTypes.STRING
+      },
+      attackerTeamID: {
+        type: DataTypes.INTEGER
+      },
+      attackerSquadID: {
+        type: DataTypes.INTEGER
+      },
+      damage: {
+        type: DataTypes.FLOAT
+      },
+      weapon: {
+        type: DataTypes.STRING
+      },
+      teamkill: {
+        type: DataTypes.BOOLEAN
+      }
+    },
       {
+        timestamps: false, // Disable timestamps
         charset: 'utf8mb4',
         collate: 'utf8mb4_unicode_ci'
       }
     );
 
     this.models.Death = this.options.database.define('DBLog_Death', {
-        id: {
-          type: DataTypes.INTEGER,
-          primaryKey: true,
-          autoIncrement: true
-        },
-        time: {
-          type: DataTypes.DATE,
-          notNull: true
-        },
-        woundTime: {
-          type: DataTypes.DATE
-        },
-        victimName: {
-          type: DataTypes.STRING
-        },
-        victimTeamID: {
-          type: DataTypes.INTEGER
-        },
-        victimSquadID: {
-          type: DataTypes.INTEGER
-        },
-        attackerName: {
-          type: DataTypes.STRING
-        },
-        attackerTeamID: {
-          type: DataTypes.INTEGER
-        },
-        attackerSquadID: {
-          type: DataTypes.INTEGER
-        },
-        damage: {
-          type: DataTypes.FLOAT
-        },
-        weapon: {
-          type: DataTypes.STRING
-        },
-        teamkill: {
-          type: DataTypes.BOOLEAN
-        }
+      id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
       },
+      time: {
+        type: DataTypes.DATE,
+        notNull: true
+      },
+      woundTime: {
+        type: DataTypes.DATE
+      },
+      victimName: {
+        type: DataTypes.STRING
+      },
+      victimTeamID: {
+        type: DataTypes.INTEGER
+      },
+      victimSquadID: {
+        type: DataTypes.INTEGER
+      },
+      attackerName: {
+        type: DataTypes.STRING
+      },
+      attackerTeamID: {
+        type: DataTypes.INTEGER
+      },
+      attackerSquadID: {
+        type: DataTypes.INTEGER
+      },
+      damage: {
+        type: DataTypes.FLOAT
+      },
+      weapon: {
+        type: DataTypes.STRING
+      },
+      teamkill: {
+        type: DataTypes.BOOLEAN
+      }
+    },
       {
+        timestamps: false, // Disable timestamps
         charset: 'utf8mb4',
         collate: 'utf8mb4_unicode_ci'
       }
     );
 
     this.models.Revive = this.options.database.define('DBLog_Revive', {
-        id: {
-          type: DataTypes.INTEGER,
-          primaryKey: true,
-          autoIncrement: true
-        },
-        time: {
-          type: DataTypes.DATE,
-          notNull: true
-        },
-        woundTime: {
-          type: DataTypes.DATE
-        },
-        victimName: {
-          type: DataTypes.STRING
-        },
-        victimTeamID: {
-          type: DataTypes.INTEGER
-        },
-        victimSquadID: {
-          type: DataTypes.INTEGER
-        },
-        attackerName: {
-          type: DataTypes.STRING
-        },
-        attackerTeamID: {
-          type: DataTypes.INTEGER
-        },
-        attackerSquadID: {
-          type: DataTypes.INTEGER
-        },
-        damage: {
-          type: DataTypes.FLOAT
-        },
-        weapon: {
-          type: DataTypes.STRING
-        },
-        teamkill: {
-          type: DataTypes.BOOLEAN
-        },
-        reviverName: {
-          type: DataTypes.STRING
-        },
-        reviverTeamID: {
-          type: DataTypes.INTEGER
-        },
-        reviverSquadID: {
-          type: DataTypes.INTEGER
-        }
+      id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
       },
+      time: {
+        type: DataTypes.DATE,
+        notNull: true
+      },
+      woundTime: {
+        type: DataTypes.DATE
+      },
+      victimName: {
+        type: DataTypes.STRING
+      },
+      victimTeamID: {
+        type: DataTypes.INTEGER
+      },
+      victimSquadID: {
+        type: DataTypes.INTEGER
+      },
+      attackerName: {
+        type: DataTypes.STRING
+      },
+      attackerTeamID: {
+        type: DataTypes.INTEGER
+      },
+      attackerSquadID: {
+        type: DataTypes.INTEGER
+      },
+      damage: {
+        type: DataTypes.FLOAT
+      },
+      weapon: {
+        type: DataTypes.STRING
+      },
+      teamkill: {
+        type: DataTypes.BOOLEAN
+      },
+      reviverName: {
+        type: DataTypes.STRING
+      },
+      reviverTeamID: {
+        type: DataTypes.INTEGER
+      },
+      reviverSquadID: {
+        type: DataTypes.INTEGER
+      }
+    },
       {
+        timestamps: false, // Disable timestamps
         charset: 'utf8mb4',
         collate: 'utf8mb4_unicode_ci'
       }
@@ -361,13 +369,13 @@ export default class DBLogMySquadStats extends BasePlugin {
 
   async mount() {
     await this.models.Server.upsert({
-      id: this.options.overrideServerID || this.server.id,
+      id: this.options.overrideServerID,
       name: this.server.serverName,
-      orgId: this.options.overrideOrgID || this.server.orgID
+      orgId: this.options.overrideOrgID
     });
 
     this.match = await this.models.Match.findOne({
-      where: { server: this.options.overrideServerID || this.server.id, endTime: null }
+      where: { server: this.options.overrideServerID, endTime: null }
     });
 
     this.server.on('NEW_GAME', this.onNewGame);
@@ -412,11 +420,11 @@ export default class DBLogMySquadStats extends BasePlugin {
   async onNewGame(info) {
     await this.models.Match.update(
       { endTime: info.time, winner: info.winner },
-      { where: { server: this.options.overrideServerID || this.server.id, endTime: null } }
+      { where: { server: this.options.overrideServerID, endTime: null } }
     );
 
     this.match = await this.models.Match.create({
-      server: this.options.overrideServerID || this.server.id,
+      server: this.options.overrideServerID,
       dlc: info.dlc,
       mapClassname: info.mapClassname,
       layerClassname: info.layerClassname,
@@ -451,7 +459,7 @@ export default class DBLogMySquadStats extends BasePlugin {
       );
 
     await this.models.Wound.create({
-      server: this.options.overrideServerID || this.server.id,
+      server: this.options.overrideServerID,
       match: this.match ? this.match.id : null,
       time: info.time,
       victim: info.victim ? info.victim.steamID : null,
@@ -493,7 +501,7 @@ export default class DBLogMySquadStats extends BasePlugin {
       );
 
     await this.models.Death.create({
-      server: this.options.overrideServerID || this.server.id,
+      server: this.options.overrideServerID,
       match: this.match ? this.match.id : null,
       time: info.time,
       woundTime: info.woundTime,
@@ -547,7 +555,7 @@ export default class DBLogMySquadStats extends BasePlugin {
       );
 
     await this.models.Revive.create({
-      server: this.options.overrideServerID || this.server.id,
+      server: this.options.overrideServerID,
       match: this.match ? this.match.id : null,
       time: info.time,
       woundTime: info.woundTime,
