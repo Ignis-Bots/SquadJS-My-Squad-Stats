@@ -49,7 +49,6 @@ export default class MySquadStats extends BasePlugin {
     // Get Request to get Match Info from API
     dataType = 'matches';
     this.match = await getDataFromAPI(dataType, this.options.accessToken);
-    this.verbose(1, this.match);
 
     this.server.on('NEW_GAME', this.onNewGame);
     this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
