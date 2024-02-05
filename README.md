@@ -25,8 +25,6 @@
 - This sends your Players Statistics, such as Kills, Deaths, Revives, etc. to My Squad Stats so that players can see a better totality of their Stats across multiple Servers.
 
 ## How to install:
-- Add `db-log-my-squad-stats.js` to your `./squad-server/plugins` folder.
-- Add sections in `config.json` to your `config.json`
-    - You WILL need to get information from Ignis to fully set the `config.json` file up.
-    - The Database Connection will need to go near the top of the `config.json` file in the `connectors` section.
-    - The Plugin Configuration will need to go in the `plugins` sections. Preferrably in aplhabetical order for easier maintenance on your end.
+- Add `my-squad-stats.js` to your `./squad-server/plugins` folder.
+- Add to your `config.json`
+    - You WILL need to get your access token from Ignis to fully set the `config.json` file up.

@@ -1,20 +1,9 @@
-// Add this in your Connectors Section
-"mySquadStatsDB": {
-    "host": "xxx.xxx.xxx.xxx", // Get this from Ignis
-    "port": 0, // Get this from Ignis
-    "username": "user", // Get this from Ignis
-    "password": "pass", // Get this from Ignis
-    "database": "db", // Get this from Ignis
-    "dialect": "mysql"
-}
-
-
-
 // Add this in your Plugins Section
+// TOKENS are Provided by Ignis upon Signup to My Squad Stats
+
+
 {
-    "plugin": "DBLogMySquadStats",
+    "plugin": "MySquadStats",
     "enabled": true,
-    "database": "mySquadStatsDB",
-    "overrideOrgID": 0, // Get this from Ignis
-    "overrideServerID": 0 // Get this from Ignis
+    "accessToken": "YOUR_ACCESS_TOKEN"
 }
