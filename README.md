@@ -18,6 +18,9 @@
 ## What it do?
 - This sends your Players Statistics, such as Kills, Deaths, Revives, etc. to My Squad Stats so that players can see a better totality of their Stats across multiple Servers.
 
+## Pre-requesites
+- Latest Version of [SquadJS](https://github.com/Team-Silver-Sphere/SquadJS)
+
 ## How to install:
 - Add `my-squad-stats.js` to your `./squad-server/plugins` folder.
 - Add to your `config.json`
