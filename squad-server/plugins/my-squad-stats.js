@@ -182,7 +182,7 @@ export default class MySquadStats extends BasePlugin {
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
       this.verbose(1, updateResponse);
     }
-    
+
     // Post Request to create Death in API
     let dataType = 'deaths';
     let deathData = {
@@ -288,13 +288,28 @@ async function getLatestVersion(owner, repo) {
   return data.tag_name;
 }
 
+function handleApiError(error) {
+  if (error.response) {
+    let errMsg = `${error.response.status} - ${error.response.statusText}`;
+    if (error.response.status === 502) {
+      errMsg += ' | Unable to connect to the API. My Squad Stats is likely down.';
+    }
+    return errMsg;
+  } else if (error.request) {
+    // The request was made but no response was received
+    return 'No response received from the API. Please check your network connection.';
+  } else {
+    // Something happened in setting up the request that triggered an Error
+    return `Error: ${error.message}`;
+  }
+}
+
 async function sendDataToAPI(dataType, data, accessToken) {
   try {
     const response = await axios.post(`https://mysquadstats.com/api/${dataType}`, data, { params: { accessToken } });
     return response.data;
   } catch (error) {
-    console.error(error);
-    return error;
+    return handleApiError(error);
   }
 }
 
@@ -303,8 +318,7 @@ async function patchDataInAPI(dataType, data, accessToken) {
     const response = await axios.patch(`https://mysquadstats.com/api/${dataType}`, data, { params: { accessToken } });
     return response.data;
   } catch (error) {
-    console.error(error);
-    return error;
+    return handleApiError(error);
   }
 }
 
@@ -313,7 +327,6 @@ async function getDataFromAPI(dataType, accessToken) {
     const response = await axios.get(`https://mysquadstats.com/api/${dataType}`, { params: { accessToken } });
     return response.data;
   } catch (error) {
-    console.error(error);
-    return error;
+    return handleApiError(error);
   }
 }
