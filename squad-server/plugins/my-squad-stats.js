@@ -48,7 +48,9 @@ export default class MySquadStats extends BasePlugin {
 
     // Get Request to get Match Info from API
     dataType = 'matches';
-    this.match = await getDataFromAPI(dataType, this.options.accessToken);
+    let matchResponse = await getDataFromAPI(dataType, this.options.accessToken);
+    this.match = matchResponse.match;
+    this.verbose(1, matchResponse.success);
 
     this.server.on('NEW_GAME', this.onNewGame);
     this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
@@ -110,8 +112,9 @@ export default class MySquadStats extends BasePlugin {
       layer: info.layer ? info.layer.name : null,
       startTime: info.time
     };
-    let createResponse = await sendDataToAPI(dataType, newMatchData, this.options.accessToken);
-    this.verbose(1, createResponse);
+    let matchResponse = await sendDataToAPI(dataType, newMatchData, this.options.accessToken);
+    this.match = matchResponse.match;
+    this.verbose(1, matchResponse.success);
   }
 
   async onPlayerWounded(info) {
