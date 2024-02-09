@@ -133,9 +133,9 @@ export default class MySquadStats extends BasePlugin {
       // Patch Request to update Player in API
       let dataType = 'players';
       let playerData = {
-        eosID: info.attacker.eosID,
-        steamID: info.attacker.steamID,
-        lastName: info.attacker.name
+        eosID: info.victim.eosID,
+        steamID: info.victim.steamID,
+        lastName: info.victim.name
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
       this.verbose(1, updateResponse);
@@ -178,9 +178,9 @@ export default class MySquadStats extends BasePlugin {
       // Patch Request to update Player in API
       let dataType = 'players';
       let playerData = {
-        eosID: info.attacker.eosID,
-        steamID: info.attacker.steamID,
-        lastName: info.attacker.name
+        eosID: info.victim.eosID,
+        steamID: info.victim.steamID,
+        lastName: info.victim.name
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
       this.verbose(1, updateResponse);
@@ -224,9 +224,9 @@ export default class MySquadStats extends BasePlugin {
       // Patch Request to update Player in API
       let dataType = 'players';
       let playerData = {
-        eosID: info.attacker.eosID,
-        steamID: info.attacker.steamID,
-        lastName: info.attacker.name
+        eosID: info.victim.eosID,
+        steamID: info.victim.steamID,
+        lastName: info.victim.name
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
       this.verbose(1, updateResponse);
