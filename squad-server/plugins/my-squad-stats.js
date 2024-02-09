@@ -72,7 +72,7 @@ export default class MySquadStats extends BasePlugin {
   async checkVersion() {
     const owner = 'IgnisAlienus';
     const repo = 'SquadJS-My-Squad-Stats';
-    const currentVersion = 'v1.1.0';
+    const currentVersion = 'v1.2.0';
 
     try {
       const latestVersion = await getLatestVersion(owner, repo);
