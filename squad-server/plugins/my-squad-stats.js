@@ -44,13 +44,13 @@ export default class MySquadStats extends BasePlugin {
       name: this.server.serverName
     };
     let response = await sendDataToAPI(dataType, serverData, this.options.accessToken);
-    this.verbose(1, response);
+    this.verbose(1, `${response.successStatus} | ${response.successMessage}`);
 
     // Get Request to get Match Info from API
     dataType = 'matches';
     let matchResponse = await getDataFromAPI(dataType, this.options.accessToken);
     this.match = matchResponse.match;
-    this.verbose(1, matchResponse.success);
+    this.verbose(1, `${matchResponse.successStatus} | ${matchResponse.successMessage}`);
 
     this.server.on('NEW_GAME', this.onNewGame);
     this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
@@ -99,7 +99,9 @@ export default class MySquadStats extends BasePlugin {
       winner: info.winner
     };
     let updateResponse = await patchDataInAPI(dataType, matchData, this.options.accessToken);
-    this.verbose(1, updateResponse);
+    if (updateResponse.successStatus === 'Error') {
+      this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+    }
 
     // Post Request to create new Match in API
     dataType = 'matches';
@@ -114,7 +116,9 @@ export default class MySquadStats extends BasePlugin {
     };
     let matchResponse = await sendDataToAPI(dataType, newMatchData, this.options.accessToken);
     this.match = matchResponse.match;
-    this.verbose(1, matchResponse.success);
+    if (matchResponse.successStatus === 'Error') {
+      this.verbose(1, `${matchResponse.successStatus} | ${matchResponse.successMessage}`);
+    }
   }
 
   async onPlayerWounded(info) {
@@ -127,7 +131,9 @@ export default class MySquadStats extends BasePlugin {
         lastName: info.attacker.name
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-      this.verbose(1, updateResponse);
+      if (updateResponse.successStatus === 'Error') {
+        this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+      }
     }
     if (info.victim) {
       // Patch Request to update Player in API
@@ -138,7 +144,9 @@ export default class MySquadStats extends BasePlugin {
         lastName: info.victim.name
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-      this.verbose(1, updateResponse);
+      if (updateResponse.successStatus === 'Error') {
+        this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+      }
     }
 
     // Post Request to create Wound in API
@@ -159,7 +167,9 @@ export default class MySquadStats extends BasePlugin {
       teamkill: info.teamkill
     };
     let response = await sendDataToAPI(dataType, woundData, this.options.accessToken);
-    this.verbose(1, response);
+    if (response.successStatus === 'Error') {
+      this.verbose(1, `${response.successStatus} | ${response.successMessage}`);
+    }
   }
 
   async onPlayerDied(info) {
@@ -172,7 +182,9 @@ export default class MySquadStats extends BasePlugin {
         lastName: info.attacker.name
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-      this.verbose(1, updateResponse);
+      if (updateResponse.successStatus === 'Error') {
+        this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+      }
     }
     if (info.victim) {
       // Patch Request to update Player in API
@@ -183,7 +195,9 @@ export default class MySquadStats extends BasePlugin {
         lastName: info.victim.name
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-      this.verbose(1, updateResponse);
+      if (updateResponse.successStatus === 'Error') {
+        this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+      }
     }
 
     // Post Request to create Death in API
@@ -205,7 +219,9 @@ export default class MySquadStats extends BasePlugin {
       teamkill: info.teamkill
     };
     let response = await sendDataToAPI(dataType, deathData, this.options.accessToken);
-    this.verbose(1, response);
+    if (response.successStatus === 'Error') {
+      this.verbose(1, `${response.successStatus} | ${response.successMessage}`);
+    }
   }
 
   async onPlayerRevived(info) {
@@ -218,7 +234,9 @@ export default class MySquadStats extends BasePlugin {
         lastName: info.attacker.name
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-      this.verbose(1, updateResponse);
+      if (updateResponse.successStatus === 'Error') {
+        this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+      }
     }
     if (info.victim) {
       // Patch Request to update Player in API
@@ -229,7 +247,9 @@ export default class MySquadStats extends BasePlugin {
         lastName: info.victim.name
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-      this.verbose(1, updateResponse);
+     if (updateResponse.successStatus === 'Error') {
+        this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+      }
     }
     if (info.reviver) {
       // Patch Request to update Player in API
@@ -240,7 +260,9 @@ export default class MySquadStats extends BasePlugin {
         lastName: info.reviver.name
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-      this.verbose(1, updateResponse);
+      if (updateResponse.successStatus === 'Error') {
+        this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+      }
     }
 
     // Post Request to create Revive in API
@@ -266,7 +288,9 @@ export default class MySquadStats extends BasePlugin {
       reviverSquadID: info.reviver ? info.reviver.squadID : null
     };
     let response = await sendDataToAPI(dataType, reviveData, this.options.accessToken);
-    this.verbose(1, response);
+    if (response.successStatus === 'Error') {
+      this.verbose(1, `${response.successStatus} | ${response.successMessage}`);
+    }
   }
 
   async onPlayerConnected(info) {
@@ -279,7 +303,9 @@ export default class MySquadStats extends BasePlugin {
       lastIP: info.ip
     };
     let response = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-    this.verbose(1, response);
+    if (response.successStatus === 'Error') {
+      this.verbose(1, `${response.successStatus} | ${response.successMessage}`);
+    }
   }
 }
 
