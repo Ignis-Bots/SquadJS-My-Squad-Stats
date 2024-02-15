@@ -2,6 +2,8 @@ import axios from 'axios';
 
 import BasePlugin from './base-plugin.js';
 
+const currentVersion = 'v1.3.0';
+
 export default class MySquadStats extends BasePlugin {
   static get description() {
     return (
@@ -72,7 +74,6 @@ export default class MySquadStats extends BasePlugin {
   async checkVersion() {
     const owner = 'IgnisAlienus';
     const repo = 'SquadJS-My-Squad-Stats';
-    const currentVersion = 'v1.2.0';
 
     try {
       const latestVersion = await getLatestVersion(owner, repo);
