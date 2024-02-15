@@ -43,7 +43,8 @@ export default class MySquadStats extends BasePlugin {
     // Post Request to create Server in API
     let dataType = 'servers';
     let serverData = {
-      name: this.server.serverName
+      name: this.server.serverName,
+      version: currentVersion
     };
     let response = await sendDataToAPI(dataType, serverData, this.options.accessToken);
     this.verbose(1, `${response.successStatus} | ${response.successMessage}`);
@@ -93,8 +94,17 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async onNewGame(info) {
+    // Post Request to create Server in API
+    let dataType = 'servers';
+    let serverData = {
+      name: this.server.serverName,
+      version: currentVersion
+    };
+    let serverResponse = await sendDataToAPI(dataType, serverData, this.options.accessToken);
+    this.verbose(1, `${serverResponse.successStatus} | ${serverResponse.successMessage}`);
+
     // Patch Request to update last Match in API
-    let dataType = 'matches';
+    dataType = 'matches';
     let matchData = {
       endTime: info.time,
       winner: info.winner
