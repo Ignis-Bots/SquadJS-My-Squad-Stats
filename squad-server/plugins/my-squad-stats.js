@@ -1,4 +1,8 @@
 import axios from 'axios';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import fs from 'fs';
+import path from 'path';
 
 import BasePlugin from './base-plugin.js';
 
@@ -33,6 +37,7 @@ export default class MySquadStats extends BasePlugin {
     this.onPlayerWounded = this.onPlayerWounded.bind(this);
     this.onPlayerDied = this.onPlayerDied.bind(this);
     this.onPlayerRevived = this.onPlayerRevived.bind(this);
+    this.isProcessingFailedRequests = false;
   }
 
   async prepareToMount() {
@@ -61,6 +66,10 @@ export default class MySquadStats extends BasePlugin {
     this.server.on('PLAYER_DIED', this.onPlayerDied);
     this.server.on('PLAYER_REVIVED', this.onPlayerRevived);
     this.checkVersion();
+    this.interval = setInterval(
+      this.pingMySquadStats.bind(this),
+      60000
+    );
   }
 
   async unmount() {
@@ -69,6 +78,7 @@ export default class MySquadStats extends BasePlugin {
     this.server.removeEventListener('PLAYER_WOUNDED', this.onPlayerWounded);
     this.server.removeEventListener('PLAYER_DIED', this.onPlayerDied);
     this.server.removeEventListener('PLAYER_REVIVED', this.onPlayerRevived);
+    clearInterval(this.interval);
   }
 
   // Check if current version is the latest version
@@ -91,6 +101,73 @@ export default class MySquadStats extends BasePlugin {
     } catch (error) {
       this.verbose(1, `Error retrieving the latest version off ${repo}:`, error);
     }
+  }
+
+  async pingMySquadStats() {
+    if (this.isProcessingFailedRequests) {
+      this.verbose(1, 'Already processing failed requests...');
+      return;
+    }
+    this.isProcessingFailedRequests = true;
+
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    let dataType = 'ping';
+    let response = await getDataFromAPI(dataType, this.options.accessToken);
+    if (response.successMessage === 'pong') {
+      // Check for any failed requests and retry
+      const filePath = path.join(__dirname, 'send-retry-requests.json');
+      if (fs.existsSync(filePath)) {
+        this.verbose(1, 'Retrying failed POST requests...');
+        let failedRequests = JSON.parse(fs.readFileSync(filePath));
+        for (let i = 0; i < failedRequests.length; i++) {
+          let request = failedRequests[i];
+          let retryResponse = await sendDataToAPI(request.dataType, request.data, this.options.accessToken);
+          this.verbose(1, `${retryResponse.successStatus} | ${retryResponse.successMessage}`);
+          if (retryResponse.successStatus === 'Success') {
+            // Remove the request from the array
+            failedRequests.splice(i, 1);
+            // Decrement i so the next iteration won't skip an item
+            i--;
+            // Write the updated failedRequests array back to the file
+            fs.writeFileSync(filePath, JSON.stringify(failedRequests));
+          }
+          // Wait for 5 seconds before processing the next request
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+        // Delete the file if there are no more failed requests
+        if (failedRequests.length === 0) {
+          fs.unlinkSync(filePath);
+        }
+        this.verbose(1, 'Finished retrying failed POST requests.');
+      }
+      const patchFilePath = path.join(__dirname, 'patch-retry-requests.json');
+      if (fs.existsSync(patchFilePath)) {
+        this.verbose(1, 'Retrying failed PATCH requests...');
+        let failedRequests = JSON.parse(fs.readFileSync(patchFilePath));
+        for (let i = 0; i < failedRequests.length; i++) {
+          let request = failedRequests[i];
+          let retryResponse = await patchDataInAPI(request.dataType, request.data, this.options.accessToken);
+          this.verbose(1, `${retryResponse.successStatus} | ${retryResponse.successMessage}`);
+          if (retryResponse.successStatus === 'Success') {
+            // Remove the request from the array
+            failedRequests.splice(i, 1);
+            // Decrement i so the next iteration won't skip an item
+            i--;
+            // Write the updated failedRequests array back to the file
+            fs.writeFileSync(patchFilePath, JSON.stringify(failedRequests));
+          }
+          // Wait for 5 seconds before processing the next request
+          await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+        // Delete the file if there are no more failed requests
+        if (failedRequests.length === 0) {
+          fs.unlinkSync(patchFilePath);
+        }
+        this.verbose(1, 'Finished retrying failed PATCH requests.');
+      }
+    }
+    this.isProcessingFailedRequests = false;
   }
 
   async onNewGame(info) {
@@ -258,7 +335,7 @@ export default class MySquadStats extends BasePlugin {
         lastName: info.victim.name
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-     if (updateResponse.successStatus === 'Error') {
+      if (updateResponse.successStatus === 'Error') {
         this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
       }
     }
@@ -331,33 +408,76 @@ async function getLatestVersion(owner, repo) {
 function handleApiError(error) {
   if (error.response) {
     let errMsg = `${error.response.status} - ${error.response.statusText}`;
+    let status = 'Error';
     if (error.response.status === 502) {
       errMsg += ' | Unable to connect to the API. My Squad Stats is likely down.';
     }
-    return errMsg;
+    return {
+      successStatus: status,
+      successMessage: errMsg
+    };
   } else if (error.request) {
     // The request was made but no response was received
-    return 'No response received from the API. Please check your network connection.';
+    return {
+      successStatus: 'Error',
+      successMessage: 'No response received from the API. Please check your network connection.'
+    };
   } else {
     // Something happened in setting up the request that triggered an Error
-    return `Error: ${error.message}`;
+    return {
+      successStatus: 'Error',
+      successMessage: `Error: ${error.message}`
+    };
   }
 }
 
 async function sendDataToAPI(dataType, data, accessToken) {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
   try {
     const response = await axios.post(`https://mysquadstats.com/api/${dataType}`, data, { params: { accessToken } });
     return response.data;
   } catch (error) {
+    if (error.response && error.response.status === 502) {
+      // Save the request details to a local file for later retry
+      const requestDetails = {
+        url: `https://mysquadstats.com/api/${dataType}`,
+        data: data,
+        params: { accessToken: accessToken }
+      };
+      const filePath = path.join(__dirname, 'send-retry-requests.json');
+      let failedRequests = [];
+      if (fs.existsSync(filePath)) {
+        failedRequests = JSON.parse(fs.readFileSync(filePath));
+      }
+      failedRequests.push(requestDetails);
+      fs.writeFileSync(filePath, JSON.stringify(failedRequests));
+    }
     return handleApiError(error);
   }
 }
 
 async function patchDataInAPI(dataType, data, accessToken) {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
   try {
     const response = await axios.patch(`https://mysquadstats.com/api/${dataType}`, data, { params: { accessToken } });
     return response.data;
   } catch (error) {
+    if (error.response && error.response.status === 502) {
+      // Save the request details to a local file for later retry
+      const requestDetails = {
+        dataType: `${dataType}`,
+        data: data
+      };
+      const filePath = path.join(__dirname, 'patch-retry-requests.json');
+      let failedRequests = [];
+      if (fs.existsSync(filePath)) {
+        failedRequests = JSON.parse(fs.readFileSync(filePath));
+      }
+      failedRequests.push(requestDetails);
+      fs.writeFileSync(filePath, JSON.stringify(failedRequests));
+    }
     return handleApiError(error);
   }
 }
