@@ -6,7 +6,7 @@ import path from 'path';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v1.3.0';
+const currentVersion = 'v2.0.0';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
