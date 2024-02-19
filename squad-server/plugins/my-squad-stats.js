@@ -90,7 +90,17 @@ export default class MySquadStats extends BasePlugin {
       const latestVersion = await getLatestVersion(owner, repo);
 
       if (currentVersion < latestVersion) {
-        this.verbose(1, `A new version of ${repo} is available. Please update your plugin.\nCurrent version: ${currentVersion} Latest Version: ${latestVersion}\nhttps://github.com/${owner}/${repo}/releases`);
+        this.verbose(1, `A new version of ${repo} is available. Updating...`);
+
+        // Update code provided by Zer0-1ne
+        const updatedCodeUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${latestVersion}/my-squad-stats.js`;
+        const updatedCodeResponse = await axios.get(updatedCodeUrl);
+
+        // Replace the existing code file with the updated code
+        const filePath = path.join(__dirname, 'my-squad-stats.js');
+        fs.writeFileSync(filePath, updatedCodeResponse.data);
+
+        this.verbose(1, `Successfully updated ${repo} to version ${latestVersion}`);
       } else if (currentVersion > latestVersion) {
         this.verbose(1, `You are running a newer version of ${repo} than the latest version.\nThis likely means you are running a pre-release version.\nCurrent version: ${currentVersion} Latest Version: ${latestVersion}\nhttps://github.com/${owner}/${repo}/releases`);
       } else if (currentVersion === latestVersion) {
