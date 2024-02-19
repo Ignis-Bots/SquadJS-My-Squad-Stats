@@ -92,7 +92,7 @@ export default class MySquadStats extends BasePlugin {
       if (currentVersion < latestVersion) {
         this.verbose(1, `A new version of ${repo} is available. Updating...`);
 
-        // Update code provided by Zer0-1ne
+        // Update code provided by Zer0-1ne - Thank you!
         const updatedCodeUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${latestVersion}/squad-server/plugins/my-squad-stats.js`;
         const updatedCodeResponse = await axios.get(updatedCodeUrl);
 
