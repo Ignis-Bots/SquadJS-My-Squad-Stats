@@ -111,7 +111,7 @@ export default class MySquadStats extends BasePlugin {
         this.verbose(1, `Unable to check for updates in ${repo}.`);
       }
     } catch (error) {
-      this.verbose(1, `Error retrieving the latest version off ${repo}:`, error);
+      this.verbose(1, `Error retrieving the latest version of ${repo}:`, error);
     }
   }
 
