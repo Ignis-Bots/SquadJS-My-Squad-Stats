@@ -93,10 +93,12 @@ export default class MySquadStats extends BasePlugin {
         this.verbose(1, `A new version of ${repo} is available. Updating...`);
 
         // Update code provided by Zer0-1ne
-        const updatedCodeUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${latestVersion}/my-squad-stats.js`;
+        const updatedCodeUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${latestVersion}/squad-server/plugins/my-squad-stats.js`;
         const updatedCodeResponse = await axios.get(updatedCodeUrl);
 
         // Replace the existing code file with the updated code
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = dirname(__filename);
         const filePath = path.join(__dirname, 'my-squad-stats.js');
         fs.writeFileSync(filePath, updatedCodeResponse.data);
 
