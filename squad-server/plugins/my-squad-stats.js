@@ -6,7 +6,7 @@ import path from 'path';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v2.0.1';
+const currentVersion = 'v2.1.0';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -52,13 +52,13 @@ export default class MySquadStats extends BasePlugin {
       version: currentVersion
     };
     let response = await sendDataToAPI(dataType, serverData, this.options.accessToken);
-    this.verbose(1, `${response.successStatus} | ${response.successMessage}`);
+    this.verbose(1, `Mount-Server | ${response.successStatus} | ${response.successMessage}`);
 
     // Get Request to get Match Info from API
     dataType = 'matches';
     let matchResponse = await getDataFromAPI(dataType, this.options.accessToken);
     this.match = matchResponse.match;
-    this.verbose(1, `${matchResponse.successStatus} | ${matchResponse.successMessage}`);
+    this.verbose(1, `Mount-Match | ${matchResponse.successStatus} | ${matchResponse.successMessage}`);
 
     this.server.on('NEW_GAME', this.onNewGame);
     this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
@@ -116,6 +116,7 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async pingMySquadStats() {
+    this.verbose(1, 'Pinging My Squad Stats...');
     if (this.isProcessingFailedRequests) {
       this.verbose(1, 'Already processing failed requests...');
       return;
@@ -127,8 +128,9 @@ export default class MySquadStats extends BasePlugin {
     let dataType = 'ping';
     let response = await getDataFromAPI(dataType, this.options.accessToken);
     if (response.successMessage === 'pong') {
+      this.verbose(1, 'Pong! My Squad Stats is up and running.');
       // Check for any failed requests and retry
-      const filePath = path.join(__dirname, 'send-retry-requests.json');
+      const filePath = path.join(__dirname, '..', 'MySquadStats_Failed_Requests', 'send-retry-requests.json');
       if (fs.existsSync(filePath)) {
         this.verbose(1, 'Retrying failed POST requests...');
         let failedRequests = JSON.parse(fs.readFileSync(filePath));
@@ -153,7 +155,7 @@ export default class MySquadStats extends BasePlugin {
         }
         this.verbose(1, 'Finished retrying failed POST requests.');
       }
-      const patchFilePath = path.join(__dirname, 'patch-retry-requests.json');
+      const patchFilePath = path.join(__dirname, '..', 'MySquadStats_Failed_Requests', 'patch-retry-requests.json');
       if (fs.existsSync(patchFilePath)) {
         this.verbose(1, 'Retrying failed PATCH requests...');
         let failedRequests = JSON.parse(fs.readFileSync(patchFilePath));
@@ -190,7 +192,7 @@ export default class MySquadStats extends BasePlugin {
       version: currentVersion
     };
     let serverResponse = await sendDataToAPI(dataType, serverData, this.options.accessToken);
-    this.verbose(1, `${serverResponse.successStatus} | ${serverResponse.successMessage}`);
+    this.verbose(1, `NewGame-Server | ${serverResponse.successStatus} | ${serverResponse.successMessage}`);
 
     // Patch Request to update last Match in API
     dataType = 'matches';
@@ -200,7 +202,7 @@ export default class MySquadStats extends BasePlugin {
     };
     let updateResponse = await patchDataInAPI(dataType, matchData, this.options.accessToken);
     if (updateResponse.successStatus === 'Error') {
-      this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+      this.verbose(1, `NewGame-Patch-Match | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
     }
 
     // Post Request to create new Match in API
@@ -217,7 +219,7 @@ export default class MySquadStats extends BasePlugin {
     let matchResponse = await sendDataToAPI(dataType, newMatchData, this.options.accessToken);
     this.match = matchResponse.match;
     if (matchResponse.successStatus === 'Error') {
-      this.verbose(1, `${matchResponse.successStatus} | ${matchResponse.successMessage}`);
+      this.verbose(1, `NewGame-Post-Match${matchResponse.successStatus} | ${matchResponse.successMessage}`);
     }
   }
 
@@ -232,7 +234,7 @@ export default class MySquadStats extends BasePlugin {
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
       if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+        this.verbose(1, `Wounds-Attacker-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
       }
     }
     if (info.victim) {
@@ -245,7 +247,7 @@ export default class MySquadStats extends BasePlugin {
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
       if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+        this.verbose(1, `Wounds-Victim-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
       }
     }
 
@@ -268,7 +270,7 @@ export default class MySquadStats extends BasePlugin {
     };
     let response = await sendDataToAPI(dataType, woundData, this.options.accessToken);
     if (response.successStatus === 'Error') {
-      this.verbose(1, `${response.successStatus} | ${response.successMessage}`);
+      this.verbose(1, `Wounds-Wound | ${response.successStatus} | ${response.successMessage}`);
     }
   }
 
@@ -283,7 +285,7 @@ export default class MySquadStats extends BasePlugin {
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
       if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+        this.verbose(1, `Died-Attacker-Player${updateResponse.successStatus} | ${updateResponse.successMessage}`);
       }
     }
     if (info.victim) {
@@ -296,7 +298,7 @@ export default class MySquadStats extends BasePlugin {
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
       if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+        this.verbose(1, `Died-Victim-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
       }
     }
 
@@ -320,7 +322,7 @@ export default class MySquadStats extends BasePlugin {
     };
     let response = await sendDataToAPI(dataType, deathData, this.options.accessToken);
     if (response.successStatus === 'Error') {
-      this.verbose(1, `${response.successStatus} | ${response.successMessage}`);
+      this.verbose(1, `Died-Death | ${response.successStatus} | ${response.successMessage}`);
     }
   }
 
@@ -335,7 +337,7 @@ export default class MySquadStats extends BasePlugin {
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
       if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+        this.verbose(1, `Revives-Attacker-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
       }
     }
     if (info.victim) {
@@ -348,7 +350,7 @@ export default class MySquadStats extends BasePlugin {
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
       if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+        this.verbose(1, `Revives-Victim-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
       }
     }
     if (info.reviver) {
@@ -361,7 +363,7 @@ export default class MySquadStats extends BasePlugin {
       };
       let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
       if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+        this.verbose(1, `Revives-Reviver-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
       }
     }
 
@@ -389,7 +391,7 @@ export default class MySquadStats extends BasePlugin {
     };
     let response = await sendDataToAPI(dataType, reviveData, this.options.accessToken);
     if (response.successStatus === 'Error') {
-      this.verbose(1, `${response.successStatus} | ${response.successMessage}`);
+      this.verbose(1, `Revives-Revive | ${response.successStatus} | ${response.successMessage}`);
     }
   }
 
@@ -404,7 +406,7 @@ export default class MySquadStats extends BasePlugin {
     };
     let response = await patchDataInAPI(dataType, playerData, this.options.accessToken);
     if (response.successStatus === 'Error') {
-      this.verbose(1, `${response.successStatus} | ${response.successMessage}`);
+      this.verbose(1, `Connected-Player | ${response.successStatus} | ${response.successMessage}`);
     }
   }
 }
@@ -422,7 +424,7 @@ function handleApiError(error) {
     let errMsg = `${error.response.status} - ${error.response.statusText}`;
     let status = 'Error';
     if (error.response.status === 502) {
-      errMsg += ' | Unable to connect to the API. My Squad Stats is likely down.';
+      errMsg += 'Unable to connect to the API. My Squad Stats is likely down.';
     }
     return {
       successStatus: status,
@@ -453,11 +455,15 @@ async function sendDataToAPI(dataType, data, accessToken) {
     if (error.response && error.response.status === 502) {
       // Save the request details to a local file for later retry
       const requestDetails = {
-        url: `https://mysquadstats.com/api/${dataType}`,
-        data: data,
-        params: { accessToken: accessToken }
+        dataType: `${dataType}`,
+        data: data
       };
-      const filePath = path.join(__dirname, 'send-retry-requests.json');
+      const dirPath = path.join(__dirname, '..', 'MySquadStats_Failed_Requests');
+      if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+      }
+
+      const filePath = path.join(dirPath, 'send-retry-requests.json');
       let failedRequests = [];
       if (fs.existsSync(filePath)) {
         failedRequests = JSON.parse(fs.readFileSync(filePath));
@@ -482,7 +488,12 @@ async function patchDataInAPI(dataType, data, accessToken) {
         dataType: `${dataType}`,
         data: data
       };
-      const filePath = path.join(__dirname, 'patch-retry-requests.json');
+      const dirPath = path.join(__dirname, '..', 'MySquadStats_Failed_Requests');
+      if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+      }
+
+      const filePath = path.join(dirPath, 'patch-retry-requests.json');
       let failedRequests = [];
       if (fs.existsSync(filePath)) {
         failedRequests = JSON.parse(fs.readFileSync(filePath));
