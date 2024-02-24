@@ -6,7 +6,7 @@ import path from 'path';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v2.1.0';
+const currentVersion = 'v2.2.0';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -60,6 +60,34 @@ export default class MySquadStats extends BasePlugin {
     this.match = matchResponse.match;
     this.verbose(1, `Mount-Match | ${matchResponse.successStatus} | ${matchResponse.successMessage}`);
 
+    // Get Admins
+    const admins = await this.server.getAdminsWithPermission('canseeadminchat');
+    // Make a players request to the API for each admin
+    for (let i = 0; i < admins.length; i++) {
+      let adminId = admins[i];
+      let playerData = {};
+
+      if (adminId.length === 17) {
+        playerData = {
+          steamID: adminId,
+          isAdmin: 1
+        };
+      } else {
+        playerData = {
+          eosID: adminId,
+          isAdmin: 1
+        };
+      }
+
+      let dataType = 'players';
+      let response = await patchDataInAPI(dataType, playerData, this.options.accessToken);
+      // Only log the response if it's an error
+      if (response.successStatus === 'Error') {
+        this.verbose(1, `Mount-Admins | ${response.successStatus} | ${response.successMessage}`);
+      }
+    }
+
+    // Subscribe to events
     this.server.on('NEW_GAME', this.onNewGame);
     this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
     this.server.on('PLAYER_WOUNDED', this.onPlayerWounded);
