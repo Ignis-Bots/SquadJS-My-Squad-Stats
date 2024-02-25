@@ -6,7 +6,7 @@ import path from 'path';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v2.2.1';
+const currentVersion = 'v3.0.0';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -32,6 +32,7 @@ export default class MySquadStats extends BasePlugin {
   constructor(server, options, connectors) {
     super(server, options, connectors);
 
+    this.onChatCommand = this.onChatCommand.bind(this);
     this.onNewGame = this.onNewGame.bind(this);
     this.onPlayerConnected = this.onPlayerConnected.bind(this);
     this.onPlayerWounded = this.onPlayerWounded.bind(this);
@@ -88,6 +89,7 @@ export default class MySquadStats extends BasePlugin {
     }
 
     // Subscribe to events
+    this.server.on(`CHAT_COMMAND:!mss`, this.onChatCommand);
     this.server.on('NEW_GAME', this.onNewGame);
     this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
     this.server.on('PLAYER_WOUNDED', this.onPlayerWounded);
@@ -101,6 +103,7 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async unmount() {
+    this.server.removeEventListener(`CHAT_COMMAND:!mss`, this.onChatCommand);
     this.server.removeEventListener('NEW_GAME', this.onNewGame);
     this.server.removeEventListener('PLAYER_CONNECTED', this.onPlayerConnected);
     this.server.removeEventListener('PLAYER_WOUNDED', this.onPlayerWounded);
@@ -218,6 +221,62 @@ export default class MySquadStats extends BasePlugin {
       }
     }
     this.isProcessingFailedRequests = false;
+  }
+
+  async onChatCommand(info) {
+    // Check if message is empty
+    if (info.message.length === 0) {
+      await this.server.rcon.warn(
+        info.player.steamID,
+        `Please input your linking code given by MySquadStats.com Bot using /link.`
+      );
+      return;
+    }
+    // Check if message is not the right length
+    if (info.message.length !== 6) {
+      await this.server.rcon.warn(
+        info.player.steamID,
+        `Please input a valid 6-digit linking code.`
+      );
+      return;
+    }
+    // Get Player from API
+    let dataType = `players?search=${info.player.steamID}`;
+    let response = await getDataFromAPI(dataType, this.options.accessToken);
+    if (response.successStatus === 'Error') {
+      await this.server.rcon.warn(
+        info.player.steamID,
+        `An error occurred while trying to link your account. Please try again later.`
+      );
+      return;
+    }
+    let player = response.player;
+
+    // If discordID is already linked, return error
+    if (player.discordID !== null) {
+      await this.server.rcon.warn(
+        info.player.steamID,
+        `Your account is already linked.\nContact an MySquadStats.com if this is wrong.`
+      );
+      return;
+    }
+
+    // Post Request to link Player in API
+    dataType = 'playerLink';
+    let linkData = {
+      steamID: info.player.steamID,
+      linkCode: info.message
+    };
+    response = await sendDataToAPI(dataType, linkData, this.options.accessToken);
+    if (response.successStatus === 'Error') {
+      await this.server.rcon.warn(
+        info.player.steamID,
+        `An error occurred while trying to link your account. Please try again later.`
+      );
+      return;
+    }
+
+    await this.server.rcon.warn(info.player.steamID, `Thank you for linking your accounts.`);
   }
 
   async onNewGame(info) {
