@@ -6,7 +6,7 @@ import path from 'path';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v2.2.0';
+const currentVersion = 'v2.2.1';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -109,37 +109,45 @@ export default class MySquadStats extends BasePlugin {
     clearInterval(this.interval);
   }
 
-  // Check if current version is the latest version
   async checkVersion() {
     const owner = 'IgnisAlienus';
+    const newOwner = 'Ignis-Bots';
     const repo = 'SquadJS-My-Squad-Stats';
+    let latestVersion;
+    let currentOwner;
 
     try {
-      const latestVersion = await getLatestVersion(owner, repo);
-
-      if (currentVersion < latestVersion) {
-        this.verbose(1, `A new version of ${repo} is available. Updating...`);
-
-        // Update code provided by Zer0-1ne - Thank you!
-        const updatedCodeUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${latestVersion}/squad-server/plugins/my-squad-stats.js`;
-        const updatedCodeResponse = await axios.get(updatedCodeUrl);
-
-        // Replace the existing code file with the updated code
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = dirname(__filename);
-        const filePath = path.join(__dirname, 'my-squad-stats.js');
-        fs.writeFileSync(filePath, updatedCodeResponse.data);
-
-        this.verbose(1, `Successfully updated ${repo} to version ${latestVersion}`);
-      } else if (currentVersion > latestVersion) {
-        this.verbose(1, `You are running a newer version of ${repo} than the latest version.\nThis likely means you are running a pre-release version.\nCurrent version: ${currentVersion} Latest Version: ${latestVersion}\nhttps://github.com/${owner}/${repo}/releases`);
-      } else if (currentVersion === latestVersion) {
-        this.verbose(1, `You are running the latest version of ${repo}.`);
-      } else {
-        this.verbose(1, `Unable to check for updates in ${repo}.`);
-      }
+      latestVersion = await getLatestVersion(owner, repo);
+      currentOwner = owner;
     } catch (error) {
-      this.verbose(1, `Error retrieving the latest version of ${repo}:`, error);
+      this.verbose(1, `Error retrieving the latest version of ${repo} from ${owner}:`, error);
+      try {
+        latestVersion = await getLatestVersion(newOwner, repo);
+        currentOwner = newOwner;
+      } catch (error) {
+        this.verbose(1, `Error retrieving the latest version of ${repo} from ${newOwner}:`, error);
+        return;
+      }
+    }
+
+    if (currentVersion < latestVersion) {
+      this.verbose(1, `A new version of ${repo} is available. Updating...`);
+
+      const updatedCodeUrl = `https://raw.githubusercontent.com/${currentOwner}/${repo}/${latestVersion}/squad-server/plugins/my-squad-stats.js`;
+      const updatedCodeResponse = await axios.get(updatedCodeUrl);
+
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = dirname(__filename);
+      const filePath = path.join(__dirname, 'my-squad-stats.js');
+      fs.writeFileSync(filePath, updatedCodeResponse.data);
+
+      this.verbose(1, `Successfully updated ${repo} to version ${latestVersion}`);
+    } else if (currentVersion > latestVersion) {
+      this.verbose(1, `You are running a newer version of ${repo} than the latest version.\nThis likely means you are running a pre-release version.\nCurrent version: ${currentVersion} Latest Version: ${latestVersion}\nhttps://github.com/${currentOwner}/${repo}/releases`);
+    } else if (currentVersion === latestVersion) {
+      this.verbose(1, `You are running the latest version of ${repo}.`);
+    } else {
+      this.verbose(1, `Unable to check for updates in ${repo}.`);
     }
   }
 
