@@ -89,7 +89,7 @@ export default class MySquadStats extends BasePlugin {
     }
 
     // Subscribe to events
-    this.server.on(`CHAT_COMMAND:!mss`, this.onChatCommand);
+    this.server.on(`CHAT_COMMAND:mss`, this.onChatCommand);
     this.server.on('NEW_GAME', this.onNewGame);
     this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
     this.server.on('PLAYER_WOUNDED', this.onPlayerWounded);
@@ -103,7 +103,7 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async unmount() {
-    this.server.removeEventListener(`CHAT_COMMAND:!mss`, this.onChatCommand);
+    this.server.removeEventListener(`CHAT_COMMAND:mss`, this.onChatCommand);
     this.server.removeEventListener('NEW_GAME', this.onNewGame);
     this.server.removeEventListener('PLAYER_CONNECTED', this.onPlayerConnected);
     this.server.removeEventListener('PLAYER_WOUNDED', this.onPlayerWounded);
@@ -228,7 +228,7 @@ export default class MySquadStats extends BasePlugin {
     if (info.message.length === 0) {
       await this.server.rcon.warn(
         info.player.steamID,
-        `Please input your linking code given by MySquadStats.com Bot using /link.`
+        `Please input your Link Code given by MySquadStats.com.`
       );
       return;
     }
@@ -236,7 +236,7 @@ export default class MySquadStats extends BasePlugin {
     if (info.message.length !== 6) {
       await this.server.rcon.warn(
         info.player.steamID,
-        `Please input a valid 6-digit linking code.`
+        `Please input a valid 6-digit Link Code.`
       );
       return;
     }
@@ -246,12 +246,11 @@ export default class MySquadStats extends BasePlugin {
     if (response.successStatus === 'Error') {
       await this.server.rcon.warn(
         info.player.steamID,
-        `An error occurred while trying to link your account. Please try again later.`
+        `An error occurred while trying to link your account.\nPlease try again later.`
       );
       return;
     }
-    let player = response.player;
-
+    let player = response.data[0];
     // If discordID is already linked, return error
     if (player.discordID !== null) {
       await this.server.rcon.warn(
@@ -265,13 +264,13 @@ export default class MySquadStats extends BasePlugin {
     dataType = 'playerLink';
     let linkData = {
       steamID: info.player.steamID,
-      linkCode: info.message
+      code: info.message
     };
     response = await sendDataToAPI(dataType, linkData, this.options.accessToken);
     if (response.successStatus === 'Error') {
       await this.server.rcon.warn(
         info.player.steamID,
-        `An error occurred while trying to link your account. Please try again later.`
+        `${response.successMessage}\nPlease try again later.`
       );
       return;
     }
