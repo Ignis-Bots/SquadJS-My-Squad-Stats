@@ -6,13 +6,11 @@ import path from 'path';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v3.0.0';
+const currentVersion = 'v4.0.0';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
-    return (
-      'The <code>gMySquadStats/code> plugin will log various server statistics and events to a central database for player stat tracking.'
-    );
+    return 'The <code>MySquadStats/code> plugin will log various server statistics and events to a central database for player stat tracking.';
   }
 
   static get defaultEnabled() {
@@ -24,7 +22,7 @@ export default class MySquadStats extends BasePlugin {
       accessToken: {
         required: true,
         description: 'The access token to use for the database.',
-        default: "YOUR_ACCESS_TOKEN"
+        default: 'YOUR_ACCESS_TOKEN',
       },
     };
   }
@@ -41,25 +39,36 @@ export default class MySquadStats extends BasePlugin {
     this.isProcessingFailedRequests = false;
   }
 
-  async prepareToMount() {
-
-  }
+  async prepareToMount() {}
 
   async mount() {
     // Post Request to create Server in API
     let dataType = 'servers';
     let serverData = {
       name: this.server.serverName,
-      version: currentVersion
+      version: currentVersion,
     };
-    let response = await sendDataToAPI(dataType, serverData, this.options.accessToken);
-    this.verbose(1, `Mount-Server | ${response.successStatus} | ${response.successMessage}`);
+    let response = await sendDataToAPI(
+      dataType,
+      serverData,
+      this.options.accessToken
+    );
+    this.verbose(
+      1,
+      `Mount-Server | ${response.successStatus} | ${response.successMessage}`
+    );
 
     // Get Request to get Match Info from API
     dataType = 'matches';
-    let matchResponse = await getDataFromAPI(dataType, this.options.accessToken);
+    let matchResponse = await getDataFromAPI(
+      dataType,
+      this.options.accessToken
+    );
     this.match = matchResponse.match;
-    this.verbose(1, `Mount-Match | ${matchResponse.successStatus} | ${matchResponse.successMessage}`);
+    this.verbose(
+      1,
+      `Mount-Match | ${matchResponse.successStatus} | ${matchResponse.successMessage}`
+    );
 
     // Get Admins
     const admins = await this.server.getAdminsWithPermission('canseeadminchat');
@@ -71,20 +80,27 @@ export default class MySquadStats extends BasePlugin {
       if (adminId.length === 17) {
         playerData = {
           steamID: adminId,
-          isAdmin: 1
+          isAdmin: 1,
         };
       } else {
         playerData = {
           eosID: adminId,
-          isAdmin: 1
+          isAdmin: 1,
         };
       }
 
       let dataType = 'players';
-      let response = await patchDataInAPI(dataType, playerData, this.options.accessToken);
+      let response = await patchDataInAPI(
+        dataType,
+        playerData,
+        this.options.accessToken
+      );
       // Only log the response if it's an error
       if (response.successStatus === 'Error') {
-        this.verbose(1, `Mount-Admins | ${response.successStatus} | ${response.successMessage}`);
+        this.verbose(
+          1,
+          `Mount-Admins | ${response.successStatus} | ${response.successMessage}`
+        );
       }
     }
 
@@ -96,10 +112,8 @@ export default class MySquadStats extends BasePlugin {
     this.server.on('PLAYER_DIED', this.onPlayerDied);
     this.server.on('PLAYER_REVIVED', this.onPlayerRevived);
     this.checkVersion();
-    this.interval = setInterval(
-      this.pingMySquadStats.bind(this),
-      60000
-    );
+    this.pingInterval = setInterval(this.pingMySquadStats.bind(this), 60000);
+    this.getAdminsInterval = setInterval(this.getAdmins.bind(this), 10000);
   }
 
   async unmount() {
@@ -109,7 +123,8 @@ export default class MySquadStats extends BasePlugin {
     this.server.removeEventListener('PLAYER_WOUNDED', this.onPlayerWounded);
     this.server.removeEventListener('PLAYER_DIED', this.onPlayerDied);
     this.server.removeEventListener('PLAYER_REVIVED', this.onPlayerRevived);
-    clearInterval(this.interval);
+    clearInterval(this.pingInterval);
+    clearInterval(this.getAdminsInterval);
   }
 
   async checkVersion() {
@@ -123,12 +138,20 @@ export default class MySquadStats extends BasePlugin {
       latestVersion = await getLatestVersion(owner, repo);
       currentOwner = owner;
     } catch (error) {
-      this.verbose(1, `Error retrieving the latest version of ${repo} from ${owner}:`, error);
+      this.verbose(
+        1,
+        `Error retrieving the latest version of ${repo} from ${owner}:`,
+        error
+      );
       try {
         latestVersion = await getLatestVersion(newOwner, repo);
         currentOwner = newOwner;
       } catch (error) {
-        this.verbose(1, `Error retrieving the latest version of ${repo} from ${newOwner}:`, error);
+        this.verbose(
+          1,
+          `Error retrieving the latest version of ${repo} from ${newOwner}:`,
+          error
+        );
         return;
       }
     }
@@ -144,9 +167,15 @@ export default class MySquadStats extends BasePlugin {
       const filePath = path.join(__dirname, 'my-squad-stats.js');
       fs.writeFileSync(filePath, updatedCodeResponse.data);
 
-      this.verbose(1, `Successfully updated ${repo} to version ${latestVersion}`);
+      this.verbose(
+        1,
+        `Successfully updated ${repo} to version ${latestVersion}`
+      );
     } else if (currentVersion > latestVersion) {
-      this.verbose(1, `You are running a newer version of ${repo} than the latest version.\nThis likely means you are running a pre-release version.\nCurrent version: ${currentVersion} Latest Version: ${latestVersion}\nhttps://github.com/${currentOwner}/${repo}/releases`);
+      this.verbose(
+        1,
+        `You are running a newer version of ${repo} than the latest version.\nThis likely means you are running a pre-release version.\nCurrent version: ${currentVersion} Latest Version: ${latestVersion}\nhttps://github.com/${currentOwner}/${repo}/releases`
+      );
     } else if (currentVersion === latestVersion) {
       this.verbose(1, `You are running the latest version of ${repo}.`);
     } else {
@@ -169,14 +198,26 @@ export default class MySquadStats extends BasePlugin {
     if (response.successMessage === 'pong') {
       this.verbose(1, 'Pong! My Squad Stats is up and running.');
       // Check for any failed requests and retry
-      const filePath = path.join(__dirname, '..', 'MySquadStats_Failed_Requests', 'send-retry-requests.json');
+      const filePath = path.join(
+        __dirname,
+        '..',
+        'MySquadStats_Failed_Requests',
+        'send-retry-requests.json'
+      );
       if (fs.existsSync(filePath)) {
         this.verbose(1, 'Retrying failed POST requests...');
         let failedRequests = JSON.parse(fs.readFileSync(filePath));
         for (let i = 0; i < failedRequests.length; i++) {
           let request = failedRequests[i];
-          let retryResponse = await sendDataToAPI(request.dataType, request.data, this.options.accessToken);
-          this.verbose(1, `${retryResponse.successStatus} | ${retryResponse.successMessage}`);
+          let retryResponse = await sendDataToAPI(
+            request.dataType,
+            request.data,
+            this.options.accessToken
+          );
+          this.verbose(
+            1,
+            `${retryResponse.successStatus} | ${retryResponse.successMessage}`
+          );
           if (retryResponse.successStatus === 'Success') {
             // Remove the request from the array
             failedRequests.splice(i, 1);
@@ -186,7 +227,7 @@ export default class MySquadStats extends BasePlugin {
             fs.writeFileSync(filePath, JSON.stringify(failedRequests));
           }
           // Wait for 5 seconds before processing the next request
-          await new Promise(resolve => setTimeout(resolve, 5000));
+          await new Promise((resolve) => setTimeout(resolve, 5000));
         }
         // Delete the file if there are no more failed requests
         if (failedRequests.length === 0) {
@@ -194,14 +235,26 @@ export default class MySquadStats extends BasePlugin {
         }
         this.verbose(1, 'Finished retrying failed POST requests.');
       }
-      const patchFilePath = path.join(__dirname, '..', 'MySquadStats_Failed_Requests', 'patch-retry-requests.json');
+      const patchFilePath = path.join(
+        __dirname,
+        '..',
+        'MySquadStats_Failed_Requests',
+        'patch-retry-requests.json'
+      );
       if (fs.existsSync(patchFilePath)) {
         this.verbose(1, 'Retrying failed PATCH requests...');
         let failedRequests = JSON.parse(fs.readFileSync(patchFilePath));
         for (let i = 0; i < failedRequests.length; i++) {
           let request = failedRequests[i];
-          let retryResponse = await patchDataInAPI(request.dataType, request.data, this.options.accessToken);
-          this.verbose(1, `${retryResponse.successStatus} | ${retryResponse.successMessage}`);
+          let retryResponse = await patchDataInAPI(
+            request.dataType,
+            request.data,
+            this.options.accessToken
+          );
+          this.verbose(
+            1,
+            `${retryResponse.successStatus} | ${retryResponse.successMessage}`
+          );
           if (retryResponse.successStatus === 'Success') {
             // Remove the request from the array
             failedRequests.splice(i, 1);
@@ -211,7 +264,7 @@ export default class MySquadStats extends BasePlugin {
             fs.writeFileSync(patchFilePath, JSON.stringify(failedRequests));
           }
           // Wait for 5 seconds before processing the next request
-          await new Promise(resolve => setTimeout(resolve, 5000));
+          await new Promise((resolve) => setTimeout(resolve, 5000));
         }
         // Delete the file if there are no more failed requests
         if (failedRequests.length === 0) {
@@ -221,6 +274,92 @@ export default class MySquadStats extends BasePlugin {
       }
     }
     this.isProcessingFailedRequests = false;
+  }
+
+  async getAdmins() {
+    this.verbose(1, 'Getting Admins...');
+    const adminLists = this.server.options.adminLists;
+    // console.log(adminLists);
+    // -----------------------
+    const groups = {};
+    const admins = {};
+    const __dirname = fileURLToPath(import.meta.url);
+
+    for (const [idx, list] of adminLists.entries()) {
+      let data = '';
+      try {
+        switch (list.type) {
+          case 'remote': {
+            const resp = await axios({
+              method: 'GET',
+              url: `${list.source}`,
+            });
+            data = resp.data;
+            break;
+          }
+          case 'local': {
+            const listPath = path.resolve(__dirname, '../../../', list.source);
+            if (!fs.existsSync(listPath))
+              throw new Error(`Could not find Admin List at ${listPath}`);
+            data = fs.readFileSync(listPath, 'utf8');
+            break;
+          }
+          default:
+            throw new Error(`Unsupported AdminList type:${list.type}`);
+        }
+      } catch (error) {
+        this.verbose(
+          1,
+          `Error fetching ${list.type} admin list: ${list.source}`,
+          error
+        );
+      }
+
+      const groupRgx =
+        /(?<=^Group=)(?<groupID>.*?):(?<groupPerms>.*?)(?=(?:\r\n|\r|\n|\s+\/\/))/gm;
+      const adminRgx =
+        /(?<=^Admin=)(?<adminID>\d{17}|[a-f0-9]{32}):(?<groupID>\S+)(?:.*@(?<discordUsername>\S*))?/gm;
+
+      for (const m of data.matchAll(groupRgx)) {
+        groups[`${idx}-${m.groups.groupID}`] = m.groups.groupPerms.split(',');
+      }
+      for (const m of data.matchAll(adminRgx)) {
+        try {
+          const group = groups[`${idx}-${m.groups.groupID}`];
+          const perms = {};
+          for (const groupPerm of group) perms[groupPerm.toLowerCase()] = true;
+
+          const adminID = m.groups.adminID;
+          const discordUsername = m.groups.discordUsername || null; // Get the discord username, or null if it doesn't exist
+
+          if (adminID in admins) {
+            admins[adminID] = Object.assign(admins[adminID], perms, {
+              discordUsername,
+            });
+            this.verbose(
+              3,
+              `Merged duplicate Admin ${adminID} to ${Object.keys(
+                admins[adminID]
+              )}`
+            );
+          } else {
+            admins[adminID] = Object.assign(perms, { discordUsername });
+            this.verbose(
+              3,
+              `Added Admin ${adminID} with ${Object.keys(perms)}`
+            );
+          }
+        } catch (error) {
+          this.verbose(
+            1,
+            `Error parsing admin group ${m.groups.groupID} from admin list: ${list.source}`,
+            error
+          );
+        }
+      }
+    }
+    this.verbose(1, `${Object.keys(admins).length} admins loaded...`);
+    console.log(admins);
   }
 
   async onChatCommand(info) {
@@ -264,9 +403,13 @@ export default class MySquadStats extends BasePlugin {
     dataType = 'playerLink';
     let linkData = {
       steamID: info.player.steamID,
-      code: info.message
+      code: info.message,
     };
-    response = await sendDataToAPI(dataType, linkData, this.options.accessToken);
+    response = await sendDataToAPI(
+      dataType,
+      linkData,
+      this.options.accessToken
+    );
     if (response.successStatus === 'Error') {
       await this.server.rcon.warn(
         info.player.steamID,
@@ -275,7 +418,10 @@ export default class MySquadStats extends BasePlugin {
       return;
     }
 
-    await this.server.rcon.warn(info.player.steamID, `Thank you for linking your accounts.`);
+    await this.server.rcon.warn(
+      info.player.steamID,
+      `Thank you for linking your accounts.`
+    );
   }
 
   async onNewGame(info) {
@@ -283,20 +429,34 @@ export default class MySquadStats extends BasePlugin {
     let dataType = 'servers';
     let serverData = {
       name: this.server.serverName,
-      version: currentVersion
+      version: currentVersion,
     };
-    let serverResponse = await sendDataToAPI(dataType, serverData, this.options.accessToken);
-    this.verbose(1, `NewGame-Server | ${serverResponse.successStatus} | ${serverResponse.successMessage}`);
+    let serverResponse = await sendDataToAPI(
+      dataType,
+      serverData,
+      this.options.accessToken
+    );
+    this.verbose(
+      1,
+      `NewGame-Server | ${serverResponse.successStatus} | ${serverResponse.successMessage}`
+    );
 
     // Patch Request to update last Match in API
     dataType = 'matches';
     let matchData = {
       endTime: info.time,
-      winner: info.winner
+      winner: info.winner,
     };
-    let updateResponse = await patchDataInAPI(dataType, matchData, this.options.accessToken);
+    let updateResponse = await patchDataInAPI(
+      dataType,
+      matchData,
+      this.options.accessToken
+    );
     if (updateResponse.successStatus === 'Error') {
-      this.verbose(1, `NewGame-Patch-Match | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+      this.verbose(
+        1,
+        `NewGame-Patch-Match | ${updateResponse.successStatus} | ${updateResponse.successMessage}`
+      );
     }
 
     // Post Request to create new Match in API
@@ -308,12 +468,19 @@ export default class MySquadStats extends BasePlugin {
       layerClassname: info.layerClassname,
       map: info.layer ? info.layer.map.name : null,
       layer: info.layer ? info.layer.name : null,
-      startTime: info.time
+      startTime: info.time,
     };
-    let matchResponse = await sendDataToAPI(dataType, newMatchData, this.options.accessToken);
+    let matchResponse = await sendDataToAPI(
+      dataType,
+      newMatchData,
+      this.options.accessToken
+    );
     this.match = matchResponse.match;
     if (matchResponse.successStatus === 'Error') {
-      this.verbose(1, `NewGame-Post-Match${matchResponse.successStatus} | ${matchResponse.successMessage}`);
+      this.verbose(
+        1,
+        `NewGame-Post-Match${matchResponse.successStatus} | ${matchResponse.successMessage}`
+      );
     }
   }
 
@@ -324,11 +491,18 @@ export default class MySquadStats extends BasePlugin {
       let playerData = {
         eosID: info.attacker.eosID,
         steamID: info.attacker.steamID,
-        lastName: info.attacker.name
+        lastName: info.attacker.name,
       };
-      let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
+      let updateResponse = await patchDataInAPI(
+        dataType,
+        playerData,
+        this.options.accessToken
+      );
       if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `Wounds-Attacker-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+        this.verbose(
+          1,
+          `Wounds-Attacker-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`
+        );
       }
     }
     if (info.victim) {
@@ -337,11 +511,18 @@ export default class MySquadStats extends BasePlugin {
       let playerData = {
         eosID: info.victim.eosID,
         steamID: info.victim.steamID,
-        lastName: info.victim.name
+        lastName: info.victim.name,
       };
-      let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
+      let updateResponse = await patchDataInAPI(
+        dataType,
+        playerData,
+        this.options.accessToken
+      );
       if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `Wounds-Victim-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+        this.verbose(
+          1,
+          `Wounds-Victim-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`
+        );
       }
     }
 
@@ -360,11 +541,18 @@ export default class MySquadStats extends BasePlugin {
       attackerSquadID: info.attacker ? info.attacker.squadID : null,
       damage: info.damage,
       weapon: info.weapon,
-      teamkill: info.teamkill
+      teamkill: info.teamkill,
     };
-    let response = await sendDataToAPI(dataType, woundData, this.options.accessToken);
+    let response = await sendDataToAPI(
+      dataType,
+      woundData,
+      this.options.accessToken
+    );
     if (response.successStatus === 'Error') {
-      this.verbose(1, `Wounds-Wound | ${response.successStatus} | ${response.successMessage}`);
+      this.verbose(
+        1,
+        `Wounds-Wound | ${response.successStatus} | ${response.successMessage}`
+      );
     }
   }
 
@@ -375,11 +563,18 @@ export default class MySquadStats extends BasePlugin {
       let playerData = {
         eosID: info.attacker.eosID,
         steamID: info.attacker.steamID,
-        lastName: info.attacker.name
+        lastName: info.attacker.name,
       };
-      let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
+      let updateResponse = await patchDataInAPI(
+        dataType,
+        playerData,
+        this.options.accessToken
+      );
       if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `Died-Attacker-Player${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+        this.verbose(
+          1,
+          `Died-Attacker-Player${updateResponse.successStatus} | ${updateResponse.successMessage}`
+        );
       }
     }
     if (info.victim) {
@@ -388,11 +583,18 @@ export default class MySquadStats extends BasePlugin {
       let playerData = {
         eosID: info.victim.eosID,
         steamID: info.victim.steamID,
-        lastName: info.victim.name
+        lastName: info.victim.name,
       };
-      let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
+      let updateResponse = await patchDataInAPI(
+        dataType,
+        playerData,
+        this.options.accessToken
+      );
       if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `Died-Victim-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+        this.verbose(
+          1,
+          `Died-Victim-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`
+        );
       }
     }
 
@@ -412,11 +614,18 @@ export default class MySquadStats extends BasePlugin {
       attackerSquadID: info.attacker ? info.attacker.squadID : null,
       damage: info.damage,
       weapon: info.weapon,
-      teamkill: info.teamkill
+      teamkill: info.teamkill,
     };
-    let response = await sendDataToAPI(dataType, deathData, this.options.accessToken);
+    let response = await sendDataToAPI(
+      dataType,
+      deathData,
+      this.options.accessToken
+    );
     if (response.successStatus === 'Error') {
-      this.verbose(1, `Died-Death | ${response.successStatus} | ${response.successMessage}`);
+      this.verbose(
+        1,
+        `Died-Death | ${response.successStatus} | ${response.successMessage}`
+      );
     }
   }
 
@@ -427,11 +636,18 @@ export default class MySquadStats extends BasePlugin {
       let playerData = {
         eosID: info.attacker.eosID,
         steamID: info.attacker.steamID,
-        lastName: info.attacker.name
+        lastName: info.attacker.name,
       };
-      let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
+      let updateResponse = await patchDataInAPI(
+        dataType,
+        playerData,
+        this.options.accessToken
+      );
       if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `Revives-Attacker-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+        this.verbose(
+          1,
+          `Revives-Attacker-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`
+        );
       }
     }
     if (info.victim) {
@@ -440,11 +656,18 @@ export default class MySquadStats extends BasePlugin {
       let playerData = {
         eosID: info.victim.eosID,
         steamID: info.victim.steamID,
-        lastName: info.victim.name
+        lastName: info.victim.name,
       };
-      let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
+      let updateResponse = await patchDataInAPI(
+        dataType,
+        playerData,
+        this.options.accessToken
+      );
       if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `Revives-Victim-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+        this.verbose(
+          1,
+          `Revives-Victim-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`
+        );
       }
     }
     if (info.reviver) {
@@ -453,11 +676,18 @@ export default class MySquadStats extends BasePlugin {
       let playerData = {
         eosID: info.reviver.eosID,
         steamID: info.reviver.steamID,
-        lastName: info.reviver.name
+        lastName: info.reviver.name,
       };
-      let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
+      let updateResponse = await patchDataInAPI(
+        dataType,
+        playerData,
+        this.options.accessToken
+      );
       if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `Revives-Reviver-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+        this.verbose(
+          1,
+          `Revives-Reviver-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`
+        );
       }
     }
 
@@ -481,11 +711,18 @@ export default class MySquadStats extends BasePlugin {
       reviver: info.reviver ? info.reviver.steamID : null,
       reviverName: info.reviver ? info.reviver.name : null,
       reviverTeamID: info.reviver ? info.reviver.teamID : null,
-      reviverSquadID: info.reviver ? info.reviver.squadID : null
+      reviverSquadID: info.reviver ? info.reviver.squadID : null,
     };
-    let response = await sendDataToAPI(dataType, reviveData, this.options.accessToken);
+    let response = await sendDataToAPI(
+      dataType,
+      reviveData,
+      this.options.accessToken
+    );
     if (response.successStatus === 'Error') {
-      this.verbose(1, `Revives-Revive | ${response.successStatus} | ${response.successMessage}`);
+      this.verbose(
+        1,
+        `Revives-Revive | ${response.successStatus} | ${response.successMessage}`
+      );
     }
   }
 
@@ -496,11 +733,18 @@ export default class MySquadStats extends BasePlugin {
       eosID: info.eosID,
       steamID: info.player.steamID,
       lastName: info.player.name,
-      lastIP: info.ip
+      lastIP: info.ip,
     };
-    let response = await patchDataInAPI(dataType, playerData, this.options.accessToken);
+    let response = await patchDataInAPI(
+      dataType,
+      playerData,
+      this.options.accessToken
+    );
     if (response.successStatus === 'Error') {
-      this.verbose(1, `Connected-Player | ${response.successStatus} | ${response.successMessage}`);
+      this.verbose(
+        1,
+        `Connected-Player | ${response.successStatus} | ${response.successMessage}`
+      );
     }
   }
 }
@@ -522,19 +766,20 @@ function handleApiError(error) {
     }
     return {
       successStatus: status,
-      successMessage: errMsg
+      successMessage: errMsg,
     };
   } else if (error.request) {
     // The request was made but no response was received
     return {
       successStatus: 'Error',
-      successMessage: 'No response received from the API. Please check your network connection.'
+      successMessage:
+        'No response received from the API. Please check your network connection.',
     };
   } else {
     // Something happened in setting up the request that triggered an Error
     return {
       successStatus: 'Error',
-      successMessage: `Error: ${error.message}`
+      successMessage: `Error: ${error.message}`,
     };
   }
 }
@@ -543,16 +788,24 @@ async function sendDataToAPI(dataType, data, accessToken) {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   try {
-    const response = await axios.post(`https://mysquadstats.com/api/${dataType}`, data, { params: { accessToken } });
+    const response = await axios.post(
+      `https://mysquadstats.com/api/${dataType}`,
+      data,
+      { params: { accessToken } }
+    );
     return response.data;
   } catch (error) {
     if (error.response && error.response.status === 502) {
       // Save the request details to a local file for later retry
       const requestDetails = {
         dataType: `${dataType}`,
-        data: data
+        data: data,
       };
-      const dirPath = path.join(__dirname, '..', 'MySquadStats_Failed_Requests');
+      const dirPath = path.join(
+        __dirname,
+        '..',
+        'MySquadStats_Failed_Requests'
+      );
       if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true });
       }
@@ -573,16 +826,24 @@ async function patchDataInAPI(dataType, data, accessToken) {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   try {
-    const response = await axios.patch(`https://mysquadstats.com/api/${dataType}`, data, { params: { accessToken } });
+    const response = await axios.patch(
+      `https://mysquadstats.com/api/${dataType}`,
+      data,
+      { params: { accessToken } }
+    );
     return response.data;
   } catch (error) {
     if (error.response && error.response.status === 502) {
       // Save the request details to a local file for later retry
       const requestDetails = {
         dataType: `${dataType}`,
-        data: data
+        data: data,
       };
-      const dirPath = path.join(__dirname, '..', 'MySquadStats_Failed_Requests');
+      const dirPath = path.join(
+        __dirname,
+        '..',
+        'MySquadStats_Failed_Requests'
+      );
       if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true });
       }
@@ -601,7 +862,10 @@ async function patchDataInAPI(dataType, data, accessToken) {
 
 async function getDataFromAPI(dataType, accessToken) {
   try {
-    const response = await axios.get(`https://mysquadstats.com/api/${dataType}`, { params: { accessToken } });
+    const response = await axios.get(
+      `https://mysquadstats.com/api/${dataType}`,
+      { params: { accessToken } }
+    );
     return response.data;
   } catch (error) {
     return handleApiError(error);
