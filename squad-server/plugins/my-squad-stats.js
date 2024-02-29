@@ -301,6 +301,20 @@ export default class MySquadStats extends BasePlugin {
       return;
     };
 
+    const __dirname = fileURLToPath(import.meta.url);
+    // If playersCompleted.json file exists return
+    const playersCompletedPath = path.join(
+      __dirname,
+      '..',
+      '..',
+      'MySquadStats_Data',
+      'playersCompleted.json'
+    );
+    if (fs.existsSync(playersCompletedPath)) {
+      this.verbose(1, 'Player Data has already been fully sent. Returning.');
+      return;
+    }
+
     // Establish a connection to the database
     const connection = new Sequelize({
       host: config.connectors.mysql.host,
@@ -333,7 +347,6 @@ export default class MySquadStats extends BasePlugin {
       // Log the player number being processed
       this.verbose(1, `Processing Player ${completedRequests + 1} of ${playerDataLength}`);
 
-      const __dirname = fileURLToPath(import.meta.url);
       // Check if player has already been processed in the players.json
       const playerDirPath = path.join(
         __dirname,
@@ -389,6 +402,14 @@ export default class MySquadStats extends BasePlugin {
       // If all requests are completed, log a completion message
       if (completedRequests === playerDataLength) {
         this.verbose(1, 'Player Data sending completed.');
+        // Create playersCompleted.json file
+        const playersCompletedPath = path.join(
+          __dirname,
+          '..',
+          '..',
+          'MySquadStats_Data',
+          'playersCompleted.json'
+        );
       }
 
       // Add a delay before processing the next player
