@@ -390,9 +390,15 @@ export default class MySquadStats extends BasePlugin {
       }
 
       // Store Completed Player player.id in players.json
-      if (fs.existsSync(playerDirPath)) {
-        processedPlayers = JSON.parse(fs.readFileSync(playerDirPath));
+      if (!fs.existsSync(playerDirPath)) {
+        // If the file doesn't exist, create it with an empty object
+        fs.writeFileSync(playerDirPath, JSON.stringify({}));
       }
+
+      // Now we know the file exists, so we can read from it
+      processedPlayers = JSON.parse(fs.readFileSync(playerDirPath));
+
+      // Add the player to the processedPlayers object and write it back to the file
       processedPlayers[player.id] = player;
       fs.writeFileSync(playerDirPath, JSON.stringify(processedPlayers));
 
@@ -402,6 +408,7 @@ export default class MySquadStats extends BasePlugin {
       // If all requests are completed, log a completion message
       if (completedRequests === playerDataLength) {
         this.verbose(1, 'Player Data sending completed.');
+
         // Create playersCompleted.json file
         const playersCompletedPath = path.join(
           __dirname,
@@ -410,6 +417,9 @@ export default class MySquadStats extends BasePlugin {
           'MySquadStats_Data',
           'playersCompleted.json'
         );
+
+        // Create the file with an empty object
+        fs.writeFileSync(playersCompletedPath, JSON.stringify({}));
       }
 
       // Add a delay before processing the next player
