@@ -2,6 +2,7 @@ import axios from 'axios';
 import { fileURLToPath } from 'url';
 import path, { dirname } from 'path';
 import fs from 'fs';
+import config from '../../config.json' assert { type: 'json' };
 import Sequelize from 'sequelize';
 
 import BasePlugin from './base-plugin.js';
@@ -113,6 +114,8 @@ export default class MySquadStats extends BasePlugin {
     this.server.on('PLAYER_REVIVED', this.onPlayerRevived);
     // Check for updates in GitHub
     this.checkVersion();
+    // Read historical stats from the database
+    this.readHistoricalStats();
     // Every minute, ping My Squad Stats
     this.pingInterval = setInterval(this.pingMySquadStats.bind(this), 60000);
     // Every 30 minutes, get the admins from the server and update the database
@@ -295,73 +298,36 @@ export default class MySquadStats extends BasePlugin {
     this.isProcessingFailedRequests = false;
   }
 
-  /* async readHistoricalStats() {
-    try {
-      // Logic to read data from database
-      const historicalData = await readDataFromDatabase();
-      const connection = Sequelize.createConnection({
-        host: this.connectors.mysql.host,
-        user: this.connectors.mysql.user,
-        password: this.connectors.mysql.password,
-        database: this.connectors.mysql.database,
-        dialect: this.connectors.mysql.dialect,
-      });
-      // connect
-      connection.connection();
+  async readHistoricalStats() {
+    // Establish a connection to the database
+    const connection = new Sequelize({
+      host: config.connectors.mysql.host,
+      port: config.connectors.mysql.port,
+      username: config.connectors.mysql.username,
+      password: config.connectors.mysql.password,
+      database: config.connectors.mysql.database,
+      dialect: config.connectors.mysql.dialect,
+    });
+    // Connect to the database
+    await connection.authenticate();
 
-      async function readDataFromDatabase() {
-        return new Promise((resolve, reject) => {
-          // SQL query to select data from a table
-          const query = 'SELECT * FROM DBLog_Players';
-          // Do they query
-          connection.query(query, (error, results, fields) => {
-            if (error) {
-              reject(error);
-              return;
-            }
-            // process results
-            resolve(results);
-          });
-        });
-      }
+    // Read data from the database
+    const historicalData = await connection.query(
+      'SELECT * FROM DBLog_Players'
+    );
 
-      // Send Data from DB to API
-      async function sendDataFromDatabase(data) {
-        try {
-          data = {
-            eosID: eosID,
-            steamID: steamID,
-            lastName: lastName,
-            lastIP: lastIP,
-          };
-          await postDataToAPI(data);
-          this.verbose(1, 'Succesfully send data to API!');
-        } catch (error) {
-          this.verbose('Error sending data to API', error);
-        }
-        // Send the data to API
-        const response = await postDataToAPI(
-          dataType,
-          data,
-          this.options.accessToken
-        );
-        console.log('Response From API:', response);
-        this.verbose(1, 'Successfully sent data to API!');
+    // Close the connection
+    await connection.close();
 
-        for (const dataEntry of historicalData) {
-          await sendDataFromDatabase(dataEntry);
-        }
-      }
-      console.log(response);
-    } catch (error) {
-      // Handle error reading historical stats
-      console.error('Error reading historical stats:', error);
-      this.verbose(1, 'Error reading historical stats...', error);
-    } finally {
-      // close connection
-      connection.end();
+    // Send Data from DB to API
+    const dataEntry = historicalData[0];
+    console.log(dataEntry);
+    return;
+    // Send Data from DB to API
+    for (const dataEntry of historicalData) {
+      console.log(dataEntry);
     }
-  } */
+  }
 
   async getAdmins() {
     this.verbose(1, 'Getting Admins...');
