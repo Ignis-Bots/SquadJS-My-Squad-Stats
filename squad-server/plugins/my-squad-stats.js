@@ -347,7 +347,7 @@ export default class MySquadStats extends BasePlugin {
         playerData = JSON.parse(fs.readFileSync(playerDirPath));
       }
       if (player.id in playerData) {
-        this.verbose(1, `Player ${player.id} has already been processed.`);
+        this.verbose(1, `Player ${player.lastName} has already been processed.`);
         completedRequests++;
         if (completedRequests === playerDataLength) {
           this.verbose(1, 'Player Data sending completed.');
