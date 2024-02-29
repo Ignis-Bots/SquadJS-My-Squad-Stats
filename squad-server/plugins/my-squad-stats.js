@@ -296,6 +296,11 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async readHistoricalStats() {
+    if (!config.connectors.mysql) {
+      this.verbose(1, 'MySQL connector not found in config.json');
+      return;
+    };
+
     // Establish a connection to the database
     const connection = new Sequelize({
       host: config.connectors.mysql.host,
