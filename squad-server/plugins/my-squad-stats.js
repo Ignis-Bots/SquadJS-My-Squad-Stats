@@ -355,11 +355,11 @@ export default class MySquadStats extends BasePlugin {
         'MySquadStats_Data',
         'players.json'
       );
-      let playerData = {};
+      let processedPlayers = {};
       if (fs.existsSync(playerDirPath)) {
-        playerData = JSON.parse(fs.readFileSync(playerDirPath));
+        processedPlayers = JSON.parse(fs.readFileSync(playerDirPath));
       }
-      if (player.id in playerData) {
+      if (player.id in processedPlayers) {
         this.verbose(1, `Player ${player.lastName} has already been processed.`);
         completedRequests++;
         if (completedRequests === playerDataLength) {
@@ -391,10 +391,10 @@ export default class MySquadStats extends BasePlugin {
 
       // Store Completed Player player.id in players.json
       if (fs.existsSync(playerDirPath)) {
-        playerData = JSON.parse(fs.readFileSync(playerDirPath));
+        processedPlayers = JSON.parse(fs.readFileSync(playerDirPath));
       }
-      playerData[player.id] = player;
-      fs.writeFileSync(playerDirPath, JSON.stringify(playerData));
+      processedPlayers[player.id] = player;
+      fs.writeFileSync(playerDirPath, JSON.stringify(processedPlayers));
 
       // Increment the counter after each request
       completedRequests++;
