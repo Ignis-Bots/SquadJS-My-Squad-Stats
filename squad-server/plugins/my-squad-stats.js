@@ -40,7 +40,7 @@ export default class MySquadStats extends BasePlugin {
     this.isProcessingFailedRequests = false;
   }
 
-  async prepareToMount() {}
+  async prepareToMount() { }
 
   async mount() {
     // Post Request to create Server in API
@@ -168,8 +168,7 @@ export default class MySquadStats extends BasePlugin {
       const updatedCodeUrl = `https://raw.githubusercontent.com/${currentOwner}/${repo}/${latestVersion}/squad-server/plugins/my-squad-stats.js`;
       const updatedCodeResponse = await axios.get(updatedCodeUrl);
 
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = dirname(__filename);
+      const __dirname = fileURLToPath(import.meta.url);
       const filePath = path.join(__dirname, 'my-squad-stats.js');
       fs.writeFileSync(filePath, updatedCodeResponse.data);
 
@@ -197,6 +196,7 @@ export default class MySquadStats extends BasePlugin {
     }
     this.isProcessingFailedRequests = true;
 
+    const __dirname = fileURLToPath(import.meta.url);
     // If MySquadStats_Failed_Requests folder exists, delete it if empty to use the new folder
     const failedRequestsFolderPath = path.join(
       __dirname,
@@ -210,9 +210,6 @@ export default class MySquadStats extends BasePlugin {
         fs.rmdirSync(failedRequestsFolderPath);
       }
     }
-
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
     const dataType = 'ping';
     const response = await getDataFromAPI(dataType, this.options.accessToken);
     if (response.successMessage === 'pong') {
@@ -308,31 +305,92 @@ export default class MySquadStats extends BasePlugin {
       database: config.connectors.mysql.database,
       dialect: config.connectors.mysql.dialect,
     });
+
     // Connect to the database
     await connection.authenticate();
 
     // Read data from the database
-    const historicalData = await connection.query(
+    const [playerData] = await connection.query(
       'SELECT * FROM DBLog_Players'
     );
 
     // Close the connection
     await connection.close();
 
+    // Store length of playerData to log completion
+    const playerDataLength = playerData.length;
+
+    // Counter for completed requests
+    let completedRequests = 0;
+
     // Send Data from DB to API
-    const dataEntry = historicalData[0];
-    console.log(dataEntry);
-    return;
-    // Send Data from DB to API
-    for (const dataEntry of historicalData) {
-      console.log(dataEntry);
+    for (const player of playerData) {
+      // Log the player number being processed
+      this.verbose(1, `Processing Player ${completedRequests + 1} of ${playerDataLength}`);
+
+      const __dirname = fileURLToPath(import.meta.url);
+      // Check if player has already been processed in the players.json
+      const playerDirPath = path.join(
+        __dirname,
+        '..',
+        '..',
+        'MySquadStats_Data',
+        'players.json'
+      );
+      let playerData = {};
+      if (fs.existsSync(playerDirPath)) {
+        playerData = JSON.parse(fs.readFileSync(playerDirPath));
+      }
+      if (player.id in playerData) {
+        this.verbose(1, `Player ${player.id} has already been processed.`);
+        completedRequests++;
+        if (completedRequests === playerDataLength) {
+          this.verbose(1, 'Player Data sending completed.');
+        }
+        continue;
+      }
+
+      const dataType = 'players';
+      const data = {
+        eosID: player.eosID,
+        steamID: player.steamID,
+        lastName: player.lastName,
+        lastIP: player.lastIP,
+      };
+      const response = await patchDataInAPI(
+        dataType,
+        data,
+        this.options.accessToken
+      );
+      // Only log the response if it's an error
+      if (response.successStatus === 'Error') {
+        this.verbose(
+          1,
+          `ReadHistoricalStats-Player | ${response.successStatus} | ${response.successMessage}`
+        );
+        continue;
+      }
+
+      // Store Completed Player player.id in players.json
+      if (fs.existsSync(playerDirPath)) {
+        playerData = JSON.parse(fs.readFileSync(playerDirPath));
+      }
+      playerData[player.id] = player;
+      fs.writeFileSync(playerDirPath, JSON.stringify(playerData));
+
+      // Increment the counter after each request
+      completedRequests++;
+
+      // If all requests are completed, log a completion message
+      if (completedRequests === playerDataLength) {
+        this.verbose(1, 'Player Data sending completed.');
+      }
     }
   }
 
   async getAdmins() {
     this.verbose(1, 'Getting Admins...');
     const adminLists = this.server.options.adminLists;
-    console.log(adminLists);
     const groups = {};
     const admins = {};
     const __dirname = fileURLToPath(import.meta.url);
@@ -795,8 +853,7 @@ function handleApiError(error) {
 }
 
 async function postDataToAPI(dataType, data, accessToken) {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
+  const __dirname = fileURLToPath(import.meta.url);
   try {
     const response = await axios.post(
       `https://mysquadstats.com/api/${dataType}`,
@@ -831,8 +888,7 @@ async function postDataToAPI(dataType, data, accessToken) {
 }
 
 async function patchDataInAPI(dataType, data, accessToken) {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
+  const __dirname = fileURLToPath(import.meta.url);
   try {
     const response = await axios.patch(
       `https://mysquadstats.com/api/${dataType}`,
