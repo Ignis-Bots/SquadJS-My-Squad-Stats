@@ -301,6 +301,20 @@ export default class MySquadStats extends BasePlugin {
       return;
     };
 
+    // Construct the directory path
+    const playerDirPath = path.join(
+      __dirname,
+      '..',
+      '..',
+      'MySquadStats_Data'
+    );
+
+    // Check if the directory exists
+    if (!fs.existsSync(playerDirPath)) {
+      // If the directory doesn't exist, create it
+      fs.mkdirSync(playerDirPath, { recursive: true });
+    }
+
     const __dirname = fileURLToPath(import.meta.url);
     // If playersCompleted.json file exists return
     const playersCompletedPath = path.join(
