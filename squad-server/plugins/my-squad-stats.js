@@ -437,7 +437,7 @@ export default class MySquadStats extends BasePlugin {
       }
 
       // Add a delay before processing the next player
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
 
