@@ -803,9 +803,17 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async onPlayerConnected(info) {
+    let playerData = {};
+    if (this.server.a2sPlayerCount <= 50 && this.server.currentLayer.gamemode === 'Seed') {
+      playerData = {
+        isSeeder: 1,
+      };
+    }
+
     // Patch Request to create Player in API
     const dataType = 'players';
-    const playerData = {
+    playerData = {
+      ...playerData,
       eosID: info.eosID,
       steamID: info.player.steamID,
       lastName: info.player.name,
