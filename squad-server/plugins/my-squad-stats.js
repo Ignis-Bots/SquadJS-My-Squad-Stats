@@ -385,6 +385,9 @@ export default class MySquadStats extends BasePlugin {
       if (completedRequests === playerDataLength) {
         this.verbose(1, 'Player Data sending completed.');
       }
+
+      // Add a delay before processing the next player
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
 
