@@ -301,6 +301,7 @@ export default class MySquadStats extends BasePlugin {
       return;
     };
 
+    const __dirname = fileURLToPath(import.meta.url);
     // Construct the directory path
     const playerDirPath = path.join(
       __dirname,
@@ -315,7 +316,6 @@ export default class MySquadStats extends BasePlugin {
       fs.mkdirSync(playerDirPath, { recursive: true });
     }
 
-    const __dirname = fileURLToPath(import.meta.url);
     // If playersCompleted.json file exists return
     const playersCompletedPath = path.join(
       __dirname,
