@@ -1,9 +1,7 @@
 import axios from 'axios';
 import { fileURLToPath } from 'url';
-import path, { dirname } from 'path';
+import path from 'path';
 import fs from 'fs';
-import config from '../../config.json' assert { type: 'json' };
-import Sequelize from 'sequelize';
 
 import BasePlugin from './base-plugin.js';
 
@@ -114,8 +112,6 @@ export default class MySquadStats extends BasePlugin {
     this.server.on('PLAYER_REVIVED', this.onPlayerRevived);
     // Check for updates in GitHub
     this.checkVersion();
-    // Read historical stats from the database
-    this.readHistoricalStats();
     // Every minute, ping My Squad Stats
     this.pingInterval = setInterval(this.pingMySquadStats.bind(this), 60000);
     // Every 30 minutes, get the admins from the server and update the database
@@ -293,152 +289,6 @@ export default class MySquadStats extends BasePlugin {
       }
     }
     this.isProcessingFailedRequests = false;
-  }
-
-  async readHistoricalStats() {
-    if (!config.connectors.mysql) {
-      this.verbose(1, 'MySQL connector not found in config.json');
-      return;
-    };
-
-    const __dirname = fileURLToPath(import.meta.url);
-    // Construct the directory path
-    const playerDirPath = path.join(
-      __dirname,
-      '..',
-      '..',
-      'MySquadStats_Data'
-    );
-
-    // Check if the directory exists
-    if (!fs.existsSync(playerDirPath)) {
-      // If the directory doesn't exist, create it
-      fs.mkdirSync(playerDirPath, { recursive: true });
-    }
-
-    // If playersCompleted.json file exists return
-    const playersCompletedPath = path.join(
-      __dirname,
-      '..',
-      '..',
-      'MySquadStats_Data',
-      'playersCompleted.json'
-    );
-    if (fs.existsSync(playersCompletedPath)) {
-      this.verbose(1, 'Player Data has already been fully sent. Returning.');
-      return;
-    }
-
-    // Establish a connection to the database
-    const connection = new Sequelize({
-      host: config.connectors.mysql.host,
-      port: config.connectors.mysql.port,
-      username: config.connectors.mysql.username,
-      password: config.connectors.mysql.password,
-      database: config.connectors.mysql.database,
-      dialect: config.connectors.mysql.dialect,
-    });
-
-    // Connect to the database
-    await connection.authenticate();
-
-    // Read data from the database
-    const [playerData] = await connection.query(
-      'SELECT * FROM DBLog_Players'
-    );
-
-    // Close the connection
-    await connection.close();
-
-    // Store length of playerData to log completion
-    const playerDataLength = playerData.length;
-
-    // Counter for completed requests
-    let completedRequests = 0;
-
-    // Send Data from DB to API
-    for (const player of playerData) {
-      // Log the player number being processed
-      this.verbose(1, `Processing Player ${completedRequests + 1} of ${playerDataLength}`);
-
-      // Check if player has already been processed in the players.json
-      const playerDirPath = path.join(
-        __dirname,
-        '..',
-        '..',
-        'MySquadStats_Data',
-        'players.json'
-      );
-      let processedPlayers = {};
-      if (fs.existsSync(playerDirPath)) {
-        processedPlayers = JSON.parse(fs.readFileSync(playerDirPath));
-      }
-      if (player.id in processedPlayers) {
-        this.verbose(4, `Player ${player.lastName} has already been processed.`);
-        completedRequests++;
-        if (completedRequests === playerDataLength) {
-          this.verbose(1, 'Player Data sending completed.');
-        }
-        continue;
-      }
-
-      const dataType = 'players';
-      const data = {
-        eosID: player.eosID,
-        steamID: player.steamID,
-        lastName: player.lastName,
-        lastIP: player.lastIP,
-      };
-      const response = await patchDataInAPI(
-        dataType,
-        data,
-        this.options.accessToken
-      );
-      // Only log the response if it's an error
-      if (response.successStatus === 'Error') {
-        this.verbose(
-          1,
-          `ReadHistoricalStats-Player | ${response.successStatus} | ${response.successMessage}`
-        );
-        continue;
-      }
-
-      // Store Completed Player player.id in players.json
-      if (!fs.existsSync(playerDirPath)) {
-        // If the file doesn't exist, create it with an empty object
-        fs.writeFileSync(playerDirPath, JSON.stringify({}));
-      }
-
-      // Now we know the file exists, so we can read from it
-      processedPlayers = JSON.parse(fs.readFileSync(playerDirPath));
-
-      // Add the player to the processedPlayers object and write it back to the file
-      processedPlayers[player.id] = player;
-      fs.writeFileSync(playerDirPath, JSON.stringify(processedPlayers));
-
-      // Increment the counter after each request
-      completedRequests++;
-
-      // If all requests are completed, log a completion message
-      if (completedRequests === playerDataLength) {
-        this.verbose(1, 'Player Data sending completed.');
-
-        // Create playersCompleted.json file
-        const playersCompletedPath = path.join(
-          __dirname,
-          '..',
-          '..',
-          'MySquadStats_Data',
-          'playersCompleted.json'
-        );
-
-        // Create the file with an empty object
-        fs.writeFileSync(playersCompletedPath, JSON.stringify({}));
-      }
-
-      // Add a delay before processing the next player
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
   }
 
   async getAdmins() {
