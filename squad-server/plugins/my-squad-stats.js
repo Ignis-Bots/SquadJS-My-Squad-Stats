@@ -399,12 +399,12 @@ export default class MySquadStats extends BasePlugin {
           adminData[adminId] = admin;
           fs.writeFileSync(adminFilePath, JSON.stringify(adminData));
           this.verbose(
-            1,
+            2,
             `Updated Admin ${adminId} in local json file with new permissions`
           );
         } else {
           this.verbose(
-            1,
+            2,
             `Admin ${adminId} is already in local json file with the same permissions`
           );
           continue;
@@ -471,6 +471,9 @@ export default class MySquadStats extends BasePlugin {
       }
 
       fs.writeFileSync(adminFilePath, JSON.stringify(adminData));
+
+      // Add a delay before processing the next admin
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
 
