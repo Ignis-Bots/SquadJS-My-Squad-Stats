@@ -764,7 +764,8 @@ export default class MySquadStats extends BasePlugin {
 
     // Check if this is the first time the attacker has made a killstreak
     if (!this.trackedKillstreaks.hasOwnProperty(eosID)) {
-      this.trackedKillstreaks[eosID] = 0; // Set the player's initial killstreak to 0
+      // Set the player's initial killstreak to 0
+      this.trackedKillstreaks[eosID] = 0;
     }
 
     // Increment the player's kill streak by 1
