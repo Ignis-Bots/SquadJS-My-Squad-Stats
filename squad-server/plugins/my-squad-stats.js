@@ -36,6 +36,12 @@ export default class MySquadStats extends BasePlugin {
     this.onPlayerDied = this.onPlayerDied.bind(this);
     this.onPlayerRevived = this.onPlayerRevived.bind(this);
     this.isProcessingFailedRequests = false;
+    // Killstreaks
+    this.trackedKillstreaks = {};
+    this.killstreakWounded = this.killstreakWounded.bind(this);
+    this.killstreakDied = this.killstreakDied.bind(this);
+    this.killstreakNewGame = this.killstreakNewGame.bind(this);
+    this.killstreakDisconnected = this.killstreakDisconnected.bind(this);
   }
 
   async prepareToMount() { }
@@ -110,6 +116,10 @@ export default class MySquadStats extends BasePlugin {
     this.server.on('PLAYER_WOUNDED', this.onPlayerWounded);
     this.server.on('PLAYER_DIED', this.onPlayerDied);
     this.server.on('PLAYER_REVIVED', this.onPlayerRevived);
+    this.server.on('PLAYER_WOUNDED', this.killstreakWounded);
+    this.server.on('PLAYER_DIED', this.killstreakDied);
+    this.server.on('NEW_GAME', this.killstreakNewGame);
+    this.server.on('PLAYER_DISCONNECTED', this.killstreakDisconnected);
     // Check for updates in GitHub
     this.checkVersion();
     // Every minute, ping My Squad Stats
@@ -125,6 +135,10 @@ export default class MySquadStats extends BasePlugin {
     this.server.removeEventListener('PLAYER_WOUNDED', this.onPlayerWounded);
     this.server.removeEventListener('PLAYER_DIED', this.onPlayerDied);
     this.server.removeEventListener('PLAYER_REVIVED', this.onPlayerRevived);
+    this.server.removeEventListener('PLAYER_WOUNDED', this.killstreakWounded);
+    this.server.removeEventListener('PLAYER_DIED', this.killstreakDied);
+    this.server.removeEventListener('NEW_GAME', this.killstreakNewGame);
+    this.server.removeEventListener('PLAYER_DISCONNECTED', this.killstreakDisconnected);
     clearInterval(this.pingInterval);
     clearInterval(this.getAdminsInterval);
   }
@@ -633,6 +647,11 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async onPlayerDied(info) {
+    // Killstreaks
+    if (info.victim) {
+
+    }
+
     // Post Request to create Death in API
     const dataType = 'deaths';
     const deathData = {
@@ -733,6 +752,138 @@ export default class MySquadStats extends BasePlugin {
         `Connected-Player | ${response.successStatus} | ${response.successMessage}`
       );
     }
+  }
+
+  // KILLSTREAKS
+  async killstreakWounded(info) {
+    if (!info.attacker) return;
+    if (info.teamkill === true) return;
+
+    // Get the attacker's Steam ID
+    const eosID = info.attackerEOSID;
+
+    // Check if this is the first time the attacker has made a killstreak
+    if (!this.trackedKillstreaks.hasOwnProperty(eosID)) {
+      this.trackedKillstreaks[eosID] = 0; // Set the player's initial killstreak to 0
+    }
+
+    // Increment the player's kill streak by 1
+    this.trackedKillstreaks[eosID] += 1;
+  }
+
+  async killstreakDied(info) {
+    if (!info.victim.eosID) return;
+    // GC Driod Support
+    // Geonosian Hive
+    const gcDroidFactions = [
+      'Droid Army',
+      'Droid Army - Lego',
+      'Droid Army - SpecOps',
+      'Droid Army - Camo',
+      'Droid Army - Snow',
+      'Droid Army - Mech',
+      'Droid Army - Halloween',
+      'Droid Army - Geonosis'
+    ];
+    // If info.victim.squad.teamName is in gcDroidFactions
+    if (gcDroidFactions.includes(info.victim.squad.teamName)) {
+      this.verbose(2, `Droid Army Detected: ${info.victim.squad.teamName}`);
+      // Call the onWound function with the info object
+      this.killstreakWounded(info);
+    }
+    const eosID = info.victim.eosID;
+    // Update highestKillstreak in the SQL database and get the new highestKillstreak
+    await this.updateHighestKillstreak(eosID);
+
+    if (this.trackedKillstreaks.hasOwnProperty(eosID)) {
+      delete this.trackedKillstreaks[eosID];
+    } else {
+      delete this.trackedKillstreaks[eosID];
+    }
+  }
+
+  async killstreakNewGame(info) {
+    // Get an array of all the Steam IDs in the trackedKillstreaks object
+    const eosIDs = Object.keys(this.trackedKillstreaks);
+
+    // Loop through the array and delete each key-value pair
+    for (const eosID of eosIDs) {
+      delete this.trackedKillstreaks[eosID];
+    }
+  }
+
+  async killstreakDisconnected(info) {
+    if (!info.eosID) return;
+    const eosID = info.eosID;
+    // Update highestKillstreak in the SQL database
+    await this.updateHighestKillstreak(eosID);
+
+    delete this.trackedKillstreaks[eosID];
+  }
+
+  async updateHighestKillstreak(eosID) {
+    try {
+      // Get Player from API
+      const dataType = `players?search=${eosID}`;
+      const response = await getDataFromAPI(dataType, this.options.accessToken);
+      if (response.successStatus === 'Error') {
+        this.verbose(
+          1,
+          `Error retrieving player from database for highestKillstreak: ${response.successMessage}`
+        );
+        return null;
+      }
+      const Player = response.data[0];
+      const currentHighestKillstreak = Player.highestKillstreak;
+      const newHighestKillstreak = this.trackedKillstreaks[eosID] || 0;
+      if (Player) {
+        if (newHighestKillstreak > currentHighestKillstreak) {
+          // Patch Request to update highestKillstreak in API
+          const dataType = 'players';
+          const playerData = {
+            eosID: eosID,
+            highestKillstreak: newHighestKillstreak,
+          };
+          const response = await patchDataInAPI(
+            dataType,
+            playerData,
+            this.options.accessToken
+          );
+          if (response.successStatus === 'Error') {
+            this.verbose(
+              1,
+              `Error updating highestKillstreak in database for ${eosID}: ${response.successMessage}`
+            );
+          } else {
+            return newHighestKillstreak;
+          }
+        }
+      } else {
+        // Create a new player in the database
+        const dataType = 'players';
+        const playerData = {
+          eosID: eosID,
+          highestKillstreak: newHighestKillstreak,
+        };
+        const response = await postDataToAPI(
+          dataType,
+          playerData,
+          this.options.accessToken
+        );
+        if (response.successStatus === 'Error') {
+          this.verbose(
+            1,
+            `Error creating new player in database for highestKillstreak: ${response.successMessage}`
+          );
+        } else {
+          return newHighestKillstreak;
+        }
+      }
+    } catch (error) {
+      this.verbose(1, `Error updating highestKillstreak in database for ${eosID}: ${error}`);
+    }
+    // Return null if the highest killstreak was not updated
+    return null;
   }
 }
 
