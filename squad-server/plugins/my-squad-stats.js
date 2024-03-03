@@ -345,7 +345,7 @@ export default class MySquadStats extends BasePlugin {
           for (const groupPerm of group) perms[groupPerm.toLowerCase()] = true;
 
           const adminID = m.groups.adminID;
-          const discordUsername = m.groups.discordUsername || null; // Get the discord username, or null if it doesn't exist
+          const discordUsername = m.groups.discordUsername || null;
 
           if (adminID in admins) {
             admins[adminID] = Object.assign(admins[adminID], perms, {
@@ -394,7 +394,7 @@ export default class MySquadStats extends BasePlugin {
       }
       if (adminId in adminData) {
         const localAdmin = adminData[adminId];
-        if (localAdmin !== admin) {
+        if (JSON.stringify(localAdmin) !== JSON.stringify(admin)) {
           // If the permissions are different, update the local json file
           adminData[adminId] = admin;
           fs.writeFileSync(adminFilePath, JSON.stringify(adminData));
@@ -412,6 +412,7 @@ export default class MySquadStats extends BasePlugin {
       }
 
       let playerData = {};
+      // Check if the admin is a steamID or an EOS ID
       if (adminId.length === 17) {
         playerData = {
           steamID: adminId,
@@ -421,6 +422,8 @@ export default class MySquadStats extends BasePlugin {
           eosID: adminId,
         };
       }
+
+      // Add the permissions to the playerData
       if (admin.canseeadminchat) {
         playerData = {
           ...playerData,
@@ -433,6 +436,8 @@ export default class MySquadStats extends BasePlugin {
           isReserve: 1,
         };
       }
+
+      // Add the discordUsername to the playerData if it exists
       if (admin.discordUsername !== null) {
         playerData = {
           ...playerData,
@@ -741,7 +746,9 @@ function handleApiError(error) {
     let errMsg = `${error.response.status} - ${error.response.statusText}`;
     const status = 'Error';
     if (error.response.status === 502) {
-      errMsg += 'Unable to connect to the API. My Squad Stats is likely down.';
+      errMsg += ' Unable to connect to the API. My Squad Stats is likely down.';
+    } else if (error.response.status === 500) {
+      errMsg += ' Internal server error. Something went wrong on the server.';
     }
     return {
       successStatus: status,
