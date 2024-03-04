@@ -760,7 +760,7 @@ export default class MySquadStats extends BasePlugin {
     if (info.teamkill === true) return;
 
     // Get the attacker's Steam ID
-    const eosID = info.attackerEOSID;
+    const eosID = info.attacker.eosID;
 
     // Check if this is the first time the attacker has made a killstreak
     if (!this.trackedKillstreaks.hasOwnProperty(eosID)) {
@@ -824,67 +824,27 @@ export default class MySquadStats extends BasePlugin {
 
   async updateHighestKillstreak(eosID) {
     try {
-      // Get Player from API
-      const dataType = `players?search=${eosID}`;
-      const response = await getDataFromAPI(dataType, this.options.accessToken);
+      // Patch Request to update highestKillstreak in API
+      const dataType = 'playerKillstreaks';
+      const playerData = {
+        eosID: eosID,
+        highestKillstreak: newHighestKillstreak,
+        match: this.match ? this.match.id : null,
+      };
+      const response = await patchDataInAPI(
+        dataType,
+        playerData,
+        this.options.accessToken
+      );
       if (response.successStatus === 'Error') {
         this.verbose(
           1,
-          `Error retrieving player from database for highestKillstreak: ${response.successMessage}`
+          `Error updating highestKillstreak in database for ${eosID}: ${response.successMessage}`
         );
-        return null;
-      }
-      const Player = response.data[0];
-      const currentHighestKillstreak = Player.highestKillstreak;
-      const newHighestKillstreak = this.trackedKillstreaks[eosID] || 0;
-      if (Player) {
-        if (newHighestKillstreak > currentHighestKillstreak) {
-          // Patch Request to update highestKillstreak in API
-          const dataType = 'players';
-          const playerData = {
-            eosID: eosID,
-            highestKillstreak: newHighestKillstreak,
-          };
-          const response = await patchDataInAPI(
-            dataType,
-            playerData,
-            this.options.accessToken
-          );
-          if (response.successStatus === 'Error') {
-            this.verbose(
-              1,
-              `Error updating highestKillstreak in database for ${eosID}: ${response.successMessage}`
-            );
-          } else {
-            return newHighestKillstreak;
-          }
-        }
-      } else {
-        // Create a new player in the database
-        const dataType = 'players';
-        const playerData = {
-          eosID: eosID,
-          highestKillstreak: newHighestKillstreak,
-        };
-        const response = await postDataToAPI(
-          dataType,
-          playerData,
-          this.options.accessToken
-        );
-        if (response.successStatus === 'Error') {
-          this.verbose(
-            1,
-            `Error creating new player in database for highestKillstreak: ${response.successMessage}`
-          );
-        } else {
-          return newHighestKillstreak;
-        }
       }
     } catch (error) {
       this.verbose(1, `Error updating highestKillstreak in database for ${eosID}: ${error}`);
     }
-    // Return null if the highest killstreak was not updated
-    return null;
   }
 }
 
