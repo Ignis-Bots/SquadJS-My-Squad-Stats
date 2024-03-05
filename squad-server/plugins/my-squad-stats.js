@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v4.1.4';
+const currentVersion = 'v4.1.5';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -177,9 +177,19 @@ export default class MySquadStats extends BasePlugin {
 
       const updatedCodeUrl = `https://raw.githubusercontent.com/${currentOwner}/${repo}/${latestVersion}/squad-server/plugins/my-squad-stats.js`;
 
+      // Download the updated code
+      let updatedCode;
+      try {
+        const response = await axios.get(updatedCodeUrl);
+        updatedCode = response.data;
+      } catch (error) {
+        this.verbose(1, `Error downloading the updated code:`, error);
+        return;
+      }
+
       const __dirname = fileURLToPath(import.meta.url);
       const filePath = path.join(__dirname, 'my-squad-stats.js');
-      fs.writeFileSync(filePath);
+      fs.writeFileSync(filePath, updatedCode);
 
       this.verbose(
         1,
@@ -527,7 +537,7 @@ export default class MySquadStats extends BasePlugin {
           ...playerData,
           removeAdmin: 1,
         };
-        
+
         // Make API request to remove the admin
         const dataType = 'players';
         const response = await patchDataInAPI(
