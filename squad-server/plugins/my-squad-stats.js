@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v4.1.0';
+const currentVersion = 'v4.1.1';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -176,7 +176,6 @@ export default class MySquadStats extends BasePlugin {
       this.verbose(1, `A new version of ${repo} is available. Updating...`);
 
       const updatedCodeUrl = `https://raw.githubusercontent.com/${currentOwner}/${repo}/${latestVersion}/squad-server/plugins/my-squad-stats.js`;
-      const updatedCodeResponse = await axios.get(updatedCodeUrl);
 
       const __dirname = fileURLToPath(import.meta.url);
       const filePath = path.join(__dirname, 'my-squad-stats.js');
