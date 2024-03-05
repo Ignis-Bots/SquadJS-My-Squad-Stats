@@ -758,7 +758,7 @@ export default class MySquadStats extends BasePlugin {
   async killstreakWounded(info) {
     if (!info.attacker) return;
     if (info.teamkill === true) return;
-
+    
     // Get the attacker's Steam ID
     const eosID = info.attacker.eosID;
 
@@ -774,6 +774,7 @@ export default class MySquadStats extends BasePlugin {
 
   async killstreakDied(info) {
     if (!info.victim.eosID) return;
+    this.verbose(1, `Killstreak Died`)
     // GC Driod Support
     // Geonosian Hive
     const gcDroidFactions = [
@@ -802,7 +803,7 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async killstreakNewGame(info) {
-    // Get an array of all the Steam IDs in the trackedKillstreaks object
+        // Get an array of all the Steam IDs in the trackedKillstreaks object
     const eosIDs = Object.keys(this.trackedKillstreaks);
 
     // Loop through the array and delete each key-value pair
@@ -813,7 +814,7 @@ export default class MySquadStats extends BasePlugin {
 
   async killstreakDisconnected(info) {
     if (!info.eosID) return;
-    const eosID = info.eosID;
+        const eosID = info.eosID;
     // Update highestKillstreak in the SQL database
     await this.updateHighestKillstreak(eosID);
 
@@ -821,12 +822,15 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async updateHighestKillstreak(eosID) {
+    // Get the player's current killstreak from the trackedKillstreaks object
+    const currentKillstreak = this.trackedKillstreaks[eosID];
+
     try {
       // Patch Request to update highestKillstreak in API
       const dataType = 'playerKillstreaks';
       const playerData = {
         eosID: eosID, 
-        highestKillstreak: newHighestKillstreak,
+        highestKillstreak: currentKillstreak,
         match: this.match ? this.match.id : null,
       };
       const response = await patchDataInAPI(
@@ -843,7 +847,7 @@ export default class MySquadStats extends BasePlugin {
     } catch (error) {
       this.verbose(1, `Error updating highestKillstreak in database for ${eosID}: ${error}`);
     }
-  }
+      }
 }
 
 // Retrieve the latest version from GitHub
