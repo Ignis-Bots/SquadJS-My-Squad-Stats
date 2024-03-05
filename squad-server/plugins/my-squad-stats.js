@@ -798,8 +798,6 @@ export default class MySquadStats extends BasePlugin {
 
     if (this.trackedKillstreaks.hasOwnProperty(eosID)) {
       delete this.trackedKillstreaks[eosID];
-    } else {
-      delete this.trackedKillstreaks[eosID];
     }
   }
 
@@ -827,7 +825,7 @@ export default class MySquadStats extends BasePlugin {
       // Patch Request to update highestKillstreak in API
       const dataType = 'playerKillstreaks';
       const playerData = {
-        eosID: eosID,
+        eosID: eosID, 
         highestKillstreak: newHighestKillstreak,
         match: this.match ? this.match.id : null,
       };
