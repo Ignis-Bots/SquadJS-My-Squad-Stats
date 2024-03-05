@@ -1,18 +1,15 @@
 import axios from 'axios';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import fs from 'fs';
 import path from 'path';
+import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v3.0.0';
+const currentVersion = 'v4.0.0';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
-    return (
-      'The <code>gMySquadStats/code> plugin will log various server statistics and events to a central database for player stat tracking.'
-    );
+    return 'The <code>MySquadStats/code> plugin will log various server statistics and events to a central database for player stat tracking.';
   }
 
   static get defaultEnabled() {
@@ -24,7 +21,7 @@ export default class MySquadStats extends BasePlugin {
       accessToken: {
         required: true,
         description: 'The access token to use for the database.',
-        default: "YOUR_ACCESS_TOKEN"
+        default: 'YOUR_ACCESS_TOKEN',
       },
     };
   }
@@ -39,52 +36,76 @@ export default class MySquadStats extends BasePlugin {
     this.onPlayerDied = this.onPlayerDied.bind(this);
     this.onPlayerRevived = this.onPlayerRevived.bind(this);
     this.isProcessingFailedRequests = false;
+    // Killstreaks
+    this.trackedKillstreaks = {};
+    this.killstreakWounded = this.killstreakWounded.bind(this);
+    this.killstreakDied = this.killstreakDied.bind(this);
+    this.killstreakNewGame = this.killstreakNewGame.bind(this);
+    this.killstreakDisconnected = this.killstreakDisconnected.bind(this);
   }
 
-  async prepareToMount() {
-
-  }
+  async prepareToMount() { }
 
   async mount() {
     // Post Request to create Server in API
     let dataType = 'servers';
-    let serverData = {
+    const serverData = {
       name: this.server.serverName,
-      version: currentVersion
+      version: currentVersion,
     };
-    let response = await sendDataToAPI(dataType, serverData, this.options.accessToken);
-    this.verbose(1, `Mount-Server | ${response.successStatus} | ${response.successMessage}`);
+    const response = await postDataToAPI(
+      dataType,
+      serverData,
+      this.options.accessToken
+    );
+    this.verbose(
+      1,
+      `Mount-Server | ${response.successStatus} | ${response.successMessage}`
+    );
 
     // Get Request to get Match Info from API
     dataType = 'matches';
-    let matchResponse = await getDataFromAPI(dataType, this.options.accessToken);
+    const matchResponse = await getDataFromAPI(
+      dataType,
+      this.options.accessToken
+    );
     this.match = matchResponse.match;
-    this.verbose(1, `Mount-Match | ${matchResponse.successStatus} | ${matchResponse.successMessage}`);
+    this.verbose(
+      1,
+      `Mount-Match | ${matchResponse.successStatus} | ${matchResponse.successMessage}`
+    );
 
     // Get Admins
     const admins = await this.server.getAdminsWithPermission('canseeadminchat');
     // Make a players request to the API for each admin
     for (let i = 0; i < admins.length; i++) {
-      let adminId = admins[i];
+      const adminId = admins[i];
       let playerData = {};
 
       if (adminId.length === 17) {
         playerData = {
           steamID: adminId,
-          isAdmin: 1
+          isAdmin: 1,
         };
       } else {
         playerData = {
           eosID: adminId,
-          isAdmin: 1
+          isAdmin: 1,
         };
       }
 
-      let dataType = 'players';
-      let response = await patchDataInAPI(dataType, playerData, this.options.accessToken);
+      const dataType = 'players';
+      const response = await patchDataInAPI(
+        dataType,
+        playerData,
+        this.options.accessToken
+      );
       // Only log the response if it's an error
       if (response.successStatus === 'Error') {
-        this.verbose(1, `Mount-Admins | ${response.successStatus} | ${response.successMessage}`);
+        this.verbose(
+          1,
+          `Mount-Admins | ${response.successStatus} | ${response.successMessage}`
+        );
       }
     }
 
@@ -95,11 +116,16 @@ export default class MySquadStats extends BasePlugin {
     this.server.on('PLAYER_WOUNDED', this.onPlayerWounded);
     this.server.on('PLAYER_DIED', this.onPlayerDied);
     this.server.on('PLAYER_REVIVED', this.onPlayerRevived);
+    this.server.on('PLAYER_WOUNDED', this.killstreakWounded);
+    this.server.on('PLAYER_DIED', this.killstreakDied);
+    this.server.on('NEW_GAME', this.killstreakNewGame);
+    this.server.on('PLAYER_DISCONNECTED', this.killstreakDisconnected);
+    // Check for updates in GitHub
     this.checkVersion();
-    this.interval = setInterval(
-      this.pingMySquadStats.bind(this),
-      60000
-    );
+    // Every minute, ping My Squad Stats
+    this.pingInterval = setInterval(this.pingMySquadStats.bind(this), 60000);
+    // Every 30 minutes, get the admins from the server and update the database
+    this.getAdminsInterval = setInterval(this.getAdmins.bind(this), 1800000);
   }
 
   async unmount() {
@@ -109,7 +135,12 @@ export default class MySquadStats extends BasePlugin {
     this.server.removeEventListener('PLAYER_WOUNDED', this.onPlayerWounded);
     this.server.removeEventListener('PLAYER_DIED', this.onPlayerDied);
     this.server.removeEventListener('PLAYER_REVIVED', this.onPlayerRevived);
-    clearInterval(this.interval);
+    this.server.removeEventListener('PLAYER_WOUNDED', this.killstreakWounded);
+    this.server.removeEventListener('PLAYER_DIED', this.killstreakDied);
+    this.server.removeEventListener('NEW_GAME', this.killstreakNewGame);
+    this.server.removeEventListener('PLAYER_DISCONNECTED', this.killstreakDisconnected);
+    clearInterval(this.pingInterval);
+    clearInterval(this.getAdminsInterval);
   }
 
   async checkVersion() {
@@ -123,12 +154,20 @@ export default class MySquadStats extends BasePlugin {
       latestVersion = await getLatestVersion(owner, repo);
       currentOwner = owner;
     } catch (error) {
-      this.verbose(1, `Error retrieving the latest version of ${repo} from ${owner}:`, error);
+      this.verbose(
+        1,
+        `Error retrieving the latest version of ${repo} from ${owner}:`,
+        error
+      );
       try {
         latestVersion = await getLatestVersion(newOwner, repo);
         currentOwner = newOwner;
       } catch (error) {
-        this.verbose(1, `Error retrieving the latest version of ${repo} from ${newOwner}:`, error);
+        this.verbose(
+          1,
+          `Error retrieving the latest version of ${repo} from ${newOwner}:`,
+          error
+        );
         return;
       }
     }
@@ -139,14 +178,19 @@ export default class MySquadStats extends BasePlugin {
       const updatedCodeUrl = `https://raw.githubusercontent.com/${currentOwner}/${repo}/${latestVersion}/squad-server/plugins/my-squad-stats.js`;
       const updatedCodeResponse = await axios.get(updatedCodeUrl);
 
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = dirname(__filename);
+      const __dirname = fileURLToPath(import.meta.url);
       const filePath = path.join(__dirname, 'my-squad-stats.js');
       fs.writeFileSync(filePath, updatedCodeResponse.data);
 
-      this.verbose(1, `Successfully updated ${repo} to version ${latestVersion}`);
+      this.verbose(
+        1,
+        `Successfully updated ${repo} to version ${latestVersion}`
+      );
     } else if (currentVersion > latestVersion) {
-      this.verbose(1, `You are running a newer version of ${repo} than the latest version.\nThis likely means you are running a pre-release version.\nCurrent version: ${currentVersion} Latest Version: ${latestVersion}\nhttps://github.com/${currentOwner}/${repo}/releases`);
+      this.verbose(
+        1,
+        `You are running a newer version of ${repo} than the latest version.\nThis likely means you are running a pre-release version.\nCurrent version: ${currentVersion} Latest Version: ${latestVersion}\nhttps://github.com/${currentOwner}/${repo}/releases`
+      );
     } else if (currentVersion === latestVersion) {
       this.verbose(1, `You are running the latest version of ${repo}.`);
     } else {
@@ -162,21 +206,46 @@ export default class MySquadStats extends BasePlugin {
     }
     this.isProcessingFailedRequests = true;
 
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = dirname(__filename);
-    let dataType = 'ping';
-    let response = await getDataFromAPI(dataType, this.options.accessToken);
+    const __dirname = fileURLToPath(import.meta.url);
+    // If MySquadStats_Failed_Requests folder exists, delete it if empty to use the new folder
+    const failedRequestsFolderPath = path.join(
+      __dirname,
+      '..',
+      '..',
+      'MySquadStats_Failed_Requests'
+    );
+    if (fs.existsSync(failedRequestsFolderPath)) {
+      const files = fs.readdirSync(failedRequestsFolderPath);
+      if (files.length === 0) {
+        fs.rmdirSync(failedRequestsFolderPath);
+      }
+    }
+    const dataType = 'ping';
+    const response = await getDataFromAPI(dataType, this.options.accessToken);
     if (response.successMessage === 'pong') {
       this.verbose(1, 'Pong! My Squad Stats is up and running.');
       // Check for any failed requests and retry
-      const filePath = path.join(__dirname, '..', 'MySquadStats_Failed_Requests', 'send-retry-requests.json');
+      const filePath = path.join(
+        __dirname,
+        '..',
+        '..',
+        'MySquadStats_Data',
+        'send-retry-requests.json'
+      );
       if (fs.existsSync(filePath)) {
         this.verbose(1, 'Retrying failed POST requests...');
-        let failedRequests = JSON.parse(fs.readFileSync(filePath));
+        const failedRequests = JSON.parse(fs.readFileSync(filePath));
         for (let i = 0; i < failedRequests.length; i++) {
-          let request = failedRequests[i];
-          let retryResponse = await sendDataToAPI(request.dataType, request.data, this.options.accessToken);
-          this.verbose(1, `${retryResponse.successStatus} | ${retryResponse.successMessage}`);
+          const request = failedRequests[i];
+          const retryResponse = await postDataToAPI(
+            request.dataType,
+            request.data,
+            this.options.accessToken
+          );
+          this.verbose(
+            1,
+            `${retryResponse.successStatus} | ${retryResponse.successMessage}`
+          );
           if (retryResponse.successStatus === 'Success') {
             // Remove the request from the array
             failedRequests.splice(i, 1);
@@ -186,7 +255,7 @@ export default class MySquadStats extends BasePlugin {
             fs.writeFileSync(filePath, JSON.stringify(failedRequests));
           }
           // Wait for 5 seconds before processing the next request
-          await new Promise(resolve => setTimeout(resolve, 5000));
+          await new Promise((resolve) => setTimeout(resolve, 5000));
         }
         // Delete the file if there are no more failed requests
         if (failedRequests.length === 0) {
@@ -194,14 +263,27 @@ export default class MySquadStats extends BasePlugin {
         }
         this.verbose(1, 'Finished retrying failed POST requests.');
       }
-      const patchFilePath = path.join(__dirname, '..', 'MySquadStats_Failed_Requests', 'patch-retry-requests.json');
+      const patchFilePath = path.join(
+        __dirname,
+        '..',
+        '..',
+        'MySquadStats_Data',
+        'patch-retry-requests.json'
+      );
       if (fs.existsSync(patchFilePath)) {
         this.verbose(1, 'Retrying failed PATCH requests...');
-        let failedRequests = JSON.parse(fs.readFileSync(patchFilePath));
+        const failedRequests = JSON.parse(fs.readFileSync(patchFilePath));
         for (let i = 0; i < failedRequests.length; i++) {
-          let request = failedRequests[i];
-          let retryResponse = await patchDataInAPI(request.dataType, request.data, this.options.accessToken);
-          this.verbose(1, `${retryResponse.successStatus} | ${retryResponse.successMessage}`);
+          const request = failedRequests[i];
+          const retryResponse = await patchDataInAPI(
+            request.dataType,
+            request.data,
+            this.options.accessToken
+          );
+          this.verbose(
+            1,
+            `${retryResponse.successStatus} | ${retryResponse.successMessage}`
+          );
           if (retryResponse.successStatus === 'Success') {
             // Remove the request from the array
             failedRequests.splice(i, 1);
@@ -211,7 +293,7 @@ export default class MySquadStats extends BasePlugin {
             fs.writeFileSync(patchFilePath, JSON.stringify(failedRequests));
           }
           // Wait for 5 seconds before processing the next request
-          await new Promise(resolve => setTimeout(resolve, 5000));
+          await new Promise((resolve) => setTimeout(resolve, 5000));
         }
         // Delete the file if there are no more failed requests
         if (failedRequests.length === 0) {
@@ -221,6 +303,192 @@ export default class MySquadStats extends BasePlugin {
       }
     }
     this.isProcessingFailedRequests = false;
+  }
+
+  async getAdmins() {
+    this.verbose(1, 'Getting Admins...');
+    const adminLists = this.server.options.adminLists;
+    const groups = {};
+    const admins = {};
+    const __dirname = fileURLToPath(import.meta.url);
+
+    for (const [idx, list] of adminLists.entries()) {
+      let data = '';
+      try {
+        switch (list.type) {
+          case 'remote': {
+            const resp = await axios({
+              method: 'GET',
+              url: `${list.source}`,
+            });
+            data = resp.data;
+            break;
+          }
+          case 'local': {
+            const listPath = path.resolve(__dirname, '../../../', list.source);
+            if (!fs.existsSync(listPath))
+              throw new Error(`Could not find Admin List at ${listPath}`);
+            data = fs.readFileSync(listPath, 'utf8');
+            break;
+          }
+          default:
+            throw new Error(`Unsupported AdminList type:${list.type}`);
+        }
+      } catch (error) {
+        this.verbose(
+          1,
+          `Error fetching ${list.type} admin list: ${list.source}`,
+          error
+        );
+      }
+
+      const groupRgx =
+        /(?<=^Group=)(?<groupID>.*?):(?<groupPerms>.*?)(?=(?:\r\n|\r|\n|\s+\/\/))/gm;
+      const adminRgx =
+        /(?<=^Admin=)(?<adminID>\d{17}|[a-f0-9]{32}):(?<groupID>\S+)(?:.*@(?<discordUsername>\S*))?/gm;
+
+      for (const m of data.matchAll(groupRgx)) {
+        groups[`${idx}-${m.groups.groupID}`] = m.groups.groupPerms
+          .split(',')
+          .map((perm) => perm.trim());
+      }
+      for (const m of data.matchAll(adminRgx)) {
+        try {
+          const group = groups[`${idx}-${m.groups.groupID}`];
+          const perms = {};
+          for (const groupPerm of group) perms[groupPerm.toLowerCase()] = true;
+
+          const adminID = m.groups.adminID;
+          const discordUsername = m.groups.discordUsername || null;
+
+          if (adminID in admins) {
+            admins[adminID] = Object.assign(admins[adminID], perms, {
+              discordUsername,
+            });
+            this.verbose(
+              3,
+              `Merged duplicate Admin ${adminID} to ${Object.keys(
+                admins[adminID]
+              )}`
+            );
+          } else {
+            admins[adminID] = Object.assign(perms, { discordUsername });
+            this.verbose(
+              3,
+              `Added Admin ${adminID} with ${Object.keys(perms)}`
+            );
+          }
+        } catch (error) {
+          this.verbose(
+            1,
+            `Error parsing admin group ${m.groups.groupID} from admin list: ${list.source}`,
+            error
+          );
+        }
+      }
+    }
+    this.verbose(1, `${Object.keys(admins).length} admins loaded...`);
+
+    for (let adminId in admins) {
+      let admin = admins[adminId];
+
+      // Check if the admin is already in the local json file
+      // If they are, check if they have the same permissions
+      // If the permissions are different, proceed, otherwise continue
+      const adminFilePath = path.join(
+        __dirname,
+        '..',
+        '..',
+        'MySquadStats_Data',
+        'admins.json'
+      );
+      let adminData = {};
+      if (fs.existsSync(adminFilePath)) {
+        adminData = JSON.parse(fs.readFileSync(adminFilePath));
+      }
+      if (adminId in adminData) {
+        const localAdmin = adminData[adminId];
+        if (JSON.stringify(localAdmin) !== JSON.stringify(admin)) {
+          // If the permissions are different, update the local json file
+          adminData[adminId] = admin;
+          fs.writeFileSync(adminFilePath, JSON.stringify(adminData));
+          this.verbose(
+            2,
+            `Updated Admin ${adminId} in local json file with new permissions`
+          );
+        } else {
+          this.verbose(
+            2,
+            `Admin ${adminId} is already in local json file with the same permissions`
+          );
+          continue;
+        }
+      }
+
+      let playerData = {};
+      // Check if the admin is a steamID or an EOS ID
+      if (adminId.length === 17) {
+        playerData = {
+          steamID: adminId,
+        };
+      } else {
+        playerData = {
+          eosID: adminId,
+        };
+      }
+
+      // Add the permissions to the playerData
+      if (admin.canseeadminchat) {
+        playerData = {
+          ...playerData,
+          isAdmin: 1,
+        };
+      }
+      if (admin.reserve) {
+        playerData = {
+          ...playerData,
+          isReserve: 1,
+        };
+      }
+
+      // Add the discordUsername to the playerData if it exists
+      if (admin.discordUsername !== null) {
+        playerData = {
+          ...playerData,
+          discordUsername: admin.discordUsername,
+        };
+      }
+
+      const dataType = 'players';
+      const response = await patchDataInAPI(
+        dataType,
+        playerData,
+        this.options.accessToken
+      );
+      // Only log the response if it's an error
+      if (response.successStatus === 'Error') {
+        this.verbose(
+          1,
+          `GetAdmins-Player | ${response.successStatus} | ${response.successMessage}`
+        );
+        continue;
+      }
+
+      // Store admin in local json file
+      adminData[adminId] = admin;
+
+      const adminDirPath = path.dirname(adminFilePath);
+
+      // Create the directory if it doesn't exist
+      if (!fs.existsSync(adminDirPath)) {
+        fs.mkdirSync(adminDirPath, { recursive: true });
+      }
+
+      fs.writeFileSync(adminFilePath, JSON.stringify(adminData));
+
+      // Add a delay before processing the next admin
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
   }
 
   async onChatCommand(info) {
@@ -250,7 +518,7 @@ export default class MySquadStats extends BasePlugin {
       );
       return;
     }
-    let player = response.data[0];
+    const player = response.data[0];
     // If discordID is already linked, return error
     if (player.discordID !== null) {
       await this.server.rcon.warn(
@@ -262,11 +530,15 @@ export default class MySquadStats extends BasePlugin {
 
     // Post Request to link Player in API
     dataType = 'playerLink';
-    let linkData = {
+    const linkData = {
       steamID: info.player.steamID,
-      code: info.message
+      code: info.message,
     };
-    response = await sendDataToAPI(dataType, linkData, this.options.accessToken);
+    response = await postDataToAPI(
+      dataType,
+      linkData,
+      this.options.accessToken
+    );
     if (response.successStatus === 'Error') {
       await this.server.rcon.warn(
         info.player.steamID,
@@ -275,203 +547,158 @@ export default class MySquadStats extends BasePlugin {
       return;
     }
 
-    await this.server.rcon.warn(info.player.steamID, `Thank you for linking your accounts.`);
+    await this.server.rcon.warn(
+      info.player.steamID,
+      `Thank you for linking your accounts.`
+    );
   }
 
   async onNewGame(info) {
     // Post Request to create Server in API
     let dataType = 'servers';
-    let serverData = {
+    const serverData = {
       name: this.server.serverName,
-      version: currentVersion
+      version: currentVersion,
     };
-    let serverResponse = await sendDataToAPI(dataType, serverData, this.options.accessToken);
-    this.verbose(1, `NewGame-Server | ${serverResponse.successStatus} | ${serverResponse.successMessage}`);
+    const serverResponse = await postDataToAPI(
+      dataType,
+      serverData,
+      this.options.accessToken
+    );
+    this.verbose(
+      1,
+      `NewGame-Server | ${serverResponse.successStatus} | ${serverResponse.successMessage}`
+    );
 
     // Patch Request to update last Match in API
     dataType = 'matches';
-    let matchData = {
+    const matchData = {
       endTime: info.time,
-      winner: info.winner
+      winner: info.winner,
     };
-    let updateResponse = await patchDataInAPI(dataType, matchData, this.options.accessToken);
+    const updateResponse = await patchDataInAPI(
+      dataType,
+      matchData,
+      this.options.accessToken
+    );
     if (updateResponse.successStatus === 'Error') {
-      this.verbose(1, `NewGame-Patch-Match | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
+      this.verbose(
+        1,
+        `NewGame-Patch-Match | ${updateResponse.successStatus} | ${updateResponse.successMessage}`
+      );
     }
 
     // Post Request to create new Match in API
     dataType = 'matches';
-    let newMatchData = {
+    const newMatchData = {
       server: this.server.serverName,
       dlc: info.dlc,
       mapClassname: info.mapClassname,
       layerClassname: info.layerClassname,
       map: info.layer ? info.layer.map.name : null,
       layer: info.layer ? info.layer.name : null,
-      startTime: info.time
+      startTime: info.time,
     };
-    let matchResponse = await sendDataToAPI(dataType, newMatchData, this.options.accessToken);
+    const matchResponse = await postDataToAPI(
+      dataType,
+      newMatchData,
+      this.options.accessToken
+    );
     this.match = matchResponse.match;
     if (matchResponse.successStatus === 'Error') {
-      this.verbose(1, `NewGame-Post-Match${matchResponse.successStatus} | ${matchResponse.successMessage}`);
+      this.verbose(
+        1,
+        `NewGame-Post-Match${matchResponse.successStatus} | ${matchResponse.successMessage}`
+      );
     }
   }
 
   async onPlayerWounded(info) {
-    if (info.attacker) {
-      // Patch Request to update Player in API
-      let dataType = 'players';
-      let playerData = {
-        eosID: info.attacker.eosID,
-        steamID: info.attacker.steamID,
-        lastName: info.attacker.name
-      };
-      let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-      if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `Wounds-Attacker-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
-      }
-    }
-    if (info.victim) {
-      // Patch Request to update Player in API
-      let dataType = 'players';
-      let playerData = {
-        eosID: info.victim.eosID,
-        steamID: info.victim.steamID,
-        lastName: info.victim.name
-      };
-      let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-      if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `Wounds-Victim-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
-      }
-    }
-
     // Post Request to create Wound in API
-    let dataType = 'wounds';
-    let woundData = {
+    const dataType = 'wounds';
+    const woundData = {
       match: this.match ? this.match.id : null,
       time: info.time,
       victim: info.victim ? info.victim.steamID : null,
+      victimEosID: info.victim ? info.victim.eosID : null,
       victimName: info.victim ? info.victim.name : null,
       victimTeamID: info.victim ? info.victim.teamID : null,
       victimSquadID: info.victim ? info.victim.squadID : null,
       attacker: info.attacker ? info.attacker.steamID : null,
+      attackerEosID: info.attacker ? info.attacker.eosID : null,
       attackerName: info.attacker ? info.attacker.name : null,
       attackerTeamID: info.attacker ? info.attacker.teamID : null,
       attackerSquadID: info.attacker ? info.attacker.squadID : null,
       damage: info.damage,
       weapon: info.weapon,
-      teamkill: info.teamkill
+      teamkill: info.teamkill,
     };
-    let response = await sendDataToAPI(dataType, woundData, this.options.accessToken);
+    const response = await postDataToAPI(
+      dataType,
+      woundData,
+      this.options.accessToken
+    );
     if (response.successStatus === 'Error') {
-      this.verbose(1, `Wounds-Wound | ${response.successStatus} | ${response.successMessage}`);
+      this.verbose(
+        1,
+        `Wounds-Wound | ${response.successStatus} | ${response.successMessage}`
+      );
     }
   }
 
   async onPlayerDied(info) {
-    if (info.attacker) {
-      // Patch Request to update Player in API
-      let dataType = 'players';
-      let playerData = {
-        eosID: info.attacker.eosID,
-        steamID: info.attacker.steamID,
-        lastName: info.attacker.name
-      };
-      let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-      if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `Died-Attacker-Player${updateResponse.successStatus} | ${updateResponse.successMessage}`);
-      }
-    }
+    // Killstreaks
     if (info.victim) {
-      // Patch Request to update Player in API
-      let dataType = 'players';
-      let playerData = {
-        eosID: info.victim.eosID,
-        steamID: info.victim.steamID,
-        lastName: info.victim.name
-      };
-      let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-      if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `Died-Victim-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
-      }
+
     }
 
     // Post Request to create Death in API
-    let dataType = 'deaths';
-    let deathData = {
+    const dataType = 'deaths';
+    const deathData = {
       match: this.match ? this.match.id : null,
       time: info.time,
       woundTime: info.woundTime,
       victim: info.victim ? info.victim.steamID : null,
+      victimEosID: info.victim ? info.victim.eosID : null,
       victimName: info.victim ? info.victim.name : null,
       victimTeamID: info.victim ? info.victim.teamID : null,
       victimSquadID: info.victim ? info.victim.squadID : null,
       attacker: info.attacker ? info.attacker.steamID : null,
+      attackerEosID: info.attacker ? info.attacker.eosID : null,
       attackerName: info.attacker ? info.attacker.name : null,
       attackerTeamID: info.attacker ? info.attacker.teamID : null,
       attackerSquadID: info.attacker ? info.attacker.squadID : null,
       damage: info.damage,
       weapon: info.weapon,
-      teamkill: info.teamkill
+      teamkill: info.teamkill,
     };
-    let response = await sendDataToAPI(dataType, deathData, this.options.accessToken);
+    const response = await postDataToAPI(
+      dataType,
+      deathData,
+      this.options.accessToken
+    );
     if (response.successStatus === 'Error') {
-      this.verbose(1, `Died-Death | ${response.successStatus} | ${response.successMessage}`);
+      this.verbose(
+        1,
+        `Died-Death | ${response.successStatus} | ${response.successMessage}`
+      );
     }
   }
 
   async onPlayerRevived(info) {
-    if (info.attacker) {
-      // Patch Request to update Player in API
-      let dataType = 'players';
-      let playerData = {
-        eosID: info.attacker.eosID,
-        steamID: info.attacker.steamID,
-        lastName: info.attacker.name
-      };
-      let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-      if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `Revives-Attacker-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
-      }
-    }
-    if (info.victim) {
-      // Patch Request to update Player in API
-      let dataType = 'players';
-      let playerData = {
-        eosID: info.victim.eosID,
-        steamID: info.victim.steamID,
-        lastName: info.victim.name
-      };
-      let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-      if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `Revives-Victim-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
-      }
-    }
-    if (info.reviver) {
-      // Patch Request to update Player in API
-      let dataType = 'players';
-      let playerData = {
-        eosID: info.reviver.eosID,
-        steamID: info.reviver.steamID,
-        lastName: info.reviver.name
-      };
-      let updateResponse = await patchDataInAPI(dataType, playerData, this.options.accessToken);
-      if (updateResponse.successStatus === 'Error') {
-        this.verbose(1, `Revives-Reviver-Player | ${updateResponse.successStatus} | ${updateResponse.successMessage}`);
-      }
-    }
-
     // Post Request to create Revive in API
-    let dataType = 'revives';
-    let reviveData = {
+    const dataType = 'revives';
+    const reviveData = {
       match: this.match ? this.match.id : null,
       time: info.time,
       woundTime: info.woundTime,
       victim: info.victim ? info.victim.steamID : null,
+      victimEosID: info.victim ? info.victim.eosID : null,
       victimName: info.victim ? info.victim.name : null,
       victimTeamID: info.victim ? info.victim.teamID : null,
       victimSquadID: info.victim ? info.victim.squadID : null,
       attacker: info.attacker ? info.attacker.steamID : null,
+      attackerEosID: info.attacker ? info.attacker.eosID : null,
       attackerName: info.attacker ? info.attacker.name : null,
       attackerTeamID: info.attacker ? info.attacker.teamID : null,
       attackerSquadID: info.attacker ? info.attacker.squadID : null,
@@ -479,30 +706,148 @@ export default class MySquadStats extends BasePlugin {
       weapon: info.weapon,
       teamkill: info.teamkill,
       reviver: info.reviver ? info.reviver.steamID : null,
+      reviverEosID: info.reviver ? info.reviver.eosID : null,
       reviverName: info.reviver ? info.reviver.name : null,
       reviverTeamID: info.reviver ? info.reviver.teamID : null,
-      reviverSquadID: info.reviver ? info.reviver.squadID : null
+      reviverSquadID: info.reviver ? info.reviver.squadID : null,
     };
-    let response = await sendDataToAPI(dataType, reviveData, this.options.accessToken);
+    const response = await postDataToAPI(
+      dataType,
+      reviveData,
+      this.options.accessToken
+    );
     if (response.successStatus === 'Error') {
-      this.verbose(1, `Revives-Revive | ${response.successStatus} | ${response.successMessage}`);
+      this.verbose(
+        1,
+        `Revives-Revive | ${response.successStatus} | ${response.successMessage}`
+      );
     }
   }
 
   async onPlayerConnected(info) {
+    let playerData = {};
+    if (this.server.a2sPlayerCount <= 50 && this.server.currentLayer.gamemode === 'Seed') {
+      playerData = {
+        isSeeder: 1,
+      };
+    }
+
     // Patch Request to create Player in API
-    let dataType = 'players';
-    let playerData = {
+    const dataType = 'players';
+    playerData = {
+      ...playerData,
       eosID: info.eosID,
       steamID: info.player.steamID,
       lastName: info.player.name,
-      lastIP: info.ip
+      lastIP: info.ip,
     };
-    let response = await patchDataInAPI(dataType, playerData, this.options.accessToken);
+    const response = await patchDataInAPI(
+      dataType,
+      playerData,
+      this.options.accessToken
+    );
     if (response.successStatus === 'Error') {
-      this.verbose(1, `Connected-Player | ${response.successStatus} | ${response.successMessage}`);
+      this.verbose(
+        1,
+        `Connected-Player | ${response.successStatus} | ${response.successMessage}`
+      );
     }
   }
+
+  // KILLSTREAKS
+  async killstreakWounded(info) {
+    if (!info.attacker) return;
+    if (info.teamkill === true) return;
+    
+    // Get the attacker's Steam ID
+    const eosID = info.attacker.eosID;
+
+    // Check if this is the first time the attacker has made a killstreak
+    if (!this.trackedKillstreaks.hasOwnProperty(eosID)) {
+      // Set the player's initial killstreak to 0
+      this.trackedKillstreaks[eosID] = 0;
+    }
+
+    // Increment the player's kill streak by 1
+    this.trackedKillstreaks[eosID] += 1;
+  }
+
+  async killstreakDied(info) {
+    if (!info.victim.eosID) return;
+    this.verbose(1, `Killstreak Died`)
+    // GC Driod Support
+    // Geonosian Hive
+    const gcDroidFactions = [
+      'Droid Army',
+      'Droid Army - Lego',
+      'Droid Army - SpecOps',
+      'Droid Army - Camo',
+      'Droid Army - Snow',
+      'Droid Army - Mech',
+      'Droid Army - Halloween',
+      'Droid Army - Geonosis'
+    ];
+    // If info.victim.squad.teamName is in gcDroidFactions
+    if (gcDroidFactions.includes(info.victim.squad.teamName)) {
+      this.verbose(2, `Droid Army Detected: ${info.victim.squad.teamName}`);
+      // Call the onWound function with the info object
+      this.killstreakWounded(info);
+    }
+    const eosID = info.victim.eosID;
+    // Update highestKillstreak in the SQL database and get the new highestKillstreak
+    await this.updateHighestKillstreak(eosID);
+
+    if (this.trackedKillstreaks.hasOwnProperty(eosID)) {
+      delete this.trackedKillstreaks[eosID];
+    }
+  }
+
+  async killstreakNewGame(info) {
+        // Get an array of all the Steam IDs in the trackedKillstreaks object
+    const eosIDs = Object.keys(this.trackedKillstreaks);
+
+    // Loop through the array and delete each key-value pair
+    for (const eosID of eosIDs) {
+      delete this.trackedKillstreaks[eosID];
+    }
+  }
+
+  async killstreakDisconnected(info) {
+    if (!info.eosID) return;
+        const eosID = info.eosID;
+    // Update highestKillstreak in the SQL database
+    await this.updateHighestKillstreak(eosID);
+
+    delete this.trackedKillstreaks[eosID];
+  }
+
+  async updateHighestKillstreak(eosID) {
+    // Get the player's current killstreak from the trackedKillstreaks object
+    const currentKillstreak = this.trackedKillstreaks[eosID];
+
+    try {
+      // Patch Request to update highestKillstreak in API
+      const dataType = 'playerKillstreaks';
+      const playerData = {
+        eosID: eosID, 
+        highestKillstreak: currentKillstreak,
+        match: this.match ? this.match.id : null,
+      };
+      const response = await patchDataInAPI(
+        dataType,
+        playerData,
+        this.options.accessToken
+      );
+      if (response.successStatus === 'Error') {
+        this.verbose(
+          1,
+          `Error updating highestKillstreak in database for ${eosID}: ${response.successMessage}`
+        );
+      }
+    } catch (error) {
+      this.verbose(1, `Error updating highestKillstreak in database for ${eosID}: ${error}`);
+    }
+      }
 }
 
 // Retrieve the latest version from GitHub
@@ -516,43 +861,51 @@ async function getLatestVersion(owner, repo) {
 function handleApiError(error) {
   if (error.response) {
     let errMsg = `${error.response.status} - ${error.response.statusText}`;
-    let status = 'Error';
+    const status = 'Error';
     if (error.response.status === 502) {
-      errMsg += 'Unable to connect to the API. My Squad Stats is likely down.';
+      errMsg += ' Unable to connect to the API. My Squad Stats is likely down.';
+    } else if (error.response.status === 500) {
+      errMsg += ' Internal server error. Something went wrong on the server.';
     }
     return {
       successStatus: status,
-      successMessage: errMsg
+      successMessage: errMsg,
     };
   } else if (error.request) {
     // The request was made but no response was received
     return {
       successStatus: 'Error',
-      successMessage: 'No response received from the API. Please check your network connection.'
+      successMessage:
+        'No response received from the API. Please check your network connection.',
     };
   } else {
     // Something happened in setting up the request that triggered an Error
     return {
       successStatus: 'Error',
-      successMessage: `Error: ${error.message}`
+      successMessage: `Error: ${error.message}`,
     };
   }
 }
 
-async function sendDataToAPI(dataType, data, accessToken) {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
+async function postDataToAPI(dataType, data, accessToken) {
+  const __dirname = fileURLToPath(import.meta.url);
   try {
-    const response = await axios.post(`https://mysquadstats.com/api/${dataType}`, data, { params: { accessToken } });
+    const response = await axios.post(
+      `https://mysquadstats.com/api/${dataType}`,
+      data,
+      {
+        params: { accessToken },
+      }
+    );
     return response.data;
   } catch (error) {
     if (error.response && error.response.status === 502) {
       // Save the request details to a local file for later retry
       const requestDetails = {
         dataType: `${dataType}`,
-        data: data
+        data: data,
       };
-      const dirPath = path.join(__dirname, '..', 'MySquadStats_Failed_Requests');
+      const dirPath = path.join(__dirname, '..', '..', 'MySquadStats_Data');
       if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true });
       }
@@ -570,19 +923,24 @@ async function sendDataToAPI(dataType, data, accessToken) {
 }
 
 async function patchDataInAPI(dataType, data, accessToken) {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
+  const __dirname = fileURLToPath(import.meta.url);
   try {
-    const response = await axios.patch(`https://mysquadstats.com/api/${dataType}`, data, { params: { accessToken } });
+    const response = await axios.patch(
+      `https://mysquadstats.com/api/${dataType}`,
+      data,
+      {
+        params: { accessToken },
+      }
+    );
     return response.data;
   } catch (error) {
     if (error.response && error.response.status === 502) {
       // Save the request details to a local file for later retry
       const requestDetails = {
         dataType: `${dataType}`,
-        data: data
+        data: data,
       };
-      const dirPath = path.join(__dirname, '..', 'MySquadStats_Failed_Requests');
+      const dirPath = path.join(__dirname, '..', '..', 'MySquadStats_Data');
       if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true });
       }
@@ -601,7 +959,12 @@ async function patchDataInAPI(dataType, data, accessToken) {
 
 async function getDataFromAPI(dataType, accessToken) {
   try {
-    const response = await axios.get(`https://mysquadstats.com/api/${dataType}`, { params: { accessToken } });
+    const response = await axios.get(
+      `https://mysquadstats.com/api/${dataType}`,
+      {
+        params: { accessToken },
+      }
+    );
     return response.data;
   } catch (error) {
     return handleApiError(error);
