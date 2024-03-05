@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v4.1.2';
+const currentVersion = 'v4.1.3';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -388,19 +388,27 @@ export default class MySquadStats extends BasePlugin {
     }
     this.verbose(1, `${Object.keys(admins).length} admins loaded...`);
 
+    let existingAdmins = {};
+    const adminFilePath = path.join(
+      __dirname,
+      '..',
+      '..',
+      'MySquadStats_Data',
+      'admins.json'
+    );
+
     for (let adminId in admins) {
       let admin = admins[adminId];
 
       // Check if the admin is already in the local json file
       // If they are, check if they have the same permissions
       // If the permissions are different, proceed, otherwise continue
-      const adminFilePath = path.join(
-        __dirname,
-        '..',
-        '..',
-        'MySquadStats_Data',
-        'admins.json'
-      );
+
+      // Read the existing admins from the admins.json file
+      if (fs.existsSync(adminFilePath)) {
+        existingAdmins = JSON.parse(fs.readFileSync(adminFilePath));
+      }
+
       let adminData = {};
       if (fs.existsSync(adminFilePath)) {
         adminData = JSON.parse(fs.readFileSync(adminFilePath));
@@ -448,6 +456,11 @@ export default class MySquadStats extends BasePlugin {
           ...playerData,
           isReserve: 1,
         };
+      } else {
+        playerData = {
+          ...playerData,
+          isReserve: 0,
+        };
       }
 
       // Add the discordUsername to the playerData if it exists
@@ -488,6 +501,53 @@ export default class MySquadStats extends BasePlugin {
       // Add a delay before processing the next admin
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
+
+    // After processing all the new admins, check for removed admins
+    for (let adminId in existingAdmins) {
+      if (!(adminId in admins)) {
+        let playerData = {};
+        // Check if the admin is a steamID or an EOS ID
+        if (adminId.length === 17) {
+          playerData = {
+            steamID: adminId,
+          };
+        } else {
+          playerData = {
+            eosID: adminId,
+          };
+        }
+
+        // Add removeWhitelist to the playerData
+        playerData = {
+          ...playerData,
+          removeWhitelist: 1,
+        };
+        
+        // Make API request to remove the admin
+        const dataType = 'players';
+        const response = await patchDataInAPI(
+          dataType,
+          playerData,
+          this.options.accessToken
+        );
+        // Only log the response if it's an error
+        if (response.successStatus === 'Error') {
+          this.verbose(
+            1,
+            `GetAdmins-Remove | ${response.successStatus} | ${response.successMessage}`
+          );
+        }
+
+        // This admin was removed
+        this.verbose(1, `Admin ${adminId} was removed`);
+
+        // Remove the admin from the existingAdmins object
+        delete existingAdmins[adminId];
+      }
+    }
+
+    // Write the updated existingAdmins object back to the admins.json file
+    fs.writeFileSync(adminFilePath, JSON.stringify(existingAdmins));
   }
 
   async onChatCommand(info) {
@@ -757,7 +817,7 @@ export default class MySquadStats extends BasePlugin {
   async killstreakWounded(info) {
     if (!info.attacker) return;
     if (info.teamkill === true) return;
-    
+
     // Get the attacker's Steam ID
     const eosID = info.attacker.eosID;
 
@@ -802,7 +862,7 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async killstreakNewGame(info) {
-        // Get an array of all the Steam IDs in the trackedKillstreaks object
+    // Get an array of all the Steam IDs in the trackedKillstreaks object
     const eosIDs = Object.keys(this.trackedKillstreaks);
 
     // Loop through the array and delete each key-value pair
@@ -813,7 +873,7 @@ export default class MySquadStats extends BasePlugin {
 
   async killstreakDisconnected(info) {
     if (!info.eosID) return;
-        const eosID = info.eosID;
+    const eosID = info.eosID;
     // Update highestKillstreak in the SQL database
     await this.updateHighestKillstreak(eosID);
 
@@ -831,7 +891,7 @@ export default class MySquadStats extends BasePlugin {
       // Patch Request to update highestKillstreak in API
       const dataType = 'playerKillstreaks';
       const playerData = {
-        eosID: eosID, 
+        eosID: eosID,
         highestKillstreak: currentKillstreak,
         match: this.match ? this.match.id : null,
       };
@@ -849,7 +909,7 @@ export default class MySquadStats extends BasePlugin {
     } catch (error) {
       this.verbose(1, `Error updating highestKillstreak in database for ${eosID}: ${error}`);
     }
-      }
+  }
 }
 
 // Retrieve the latest version from GitHub
@@ -972,4 +1032,3 @@ async function getDataFromAPI(dataType, accessToken) {
     return handleApiError(error);
   }
 }
- 
