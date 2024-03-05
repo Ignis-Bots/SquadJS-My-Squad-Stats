@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v4.1.5';
+const currentVersion = 'v4.1.6';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -187,7 +187,7 @@ export default class MySquadStats extends BasePlugin {
         return;
       }
 
-      const __dirname = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(fileURLToPath(import.meta.url));
       const filePath = path.join(__dirname, 'my-squad-stats.js');
       fs.writeFileSync(filePath, updatedCode);
 
