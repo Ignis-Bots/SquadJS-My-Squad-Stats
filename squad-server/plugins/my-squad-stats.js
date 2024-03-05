@@ -180,7 +180,7 @@ export default class MySquadStats extends BasePlugin {
 
       const __dirname = fileURLToPath(import.meta.url);
       const filePath = path.join(__dirname, 'my-squad-stats.js');
-      fs.writeFileSync(filePath, updatedCodeResponse.data);
+      fs.writeFileSync(filePath);
 
       this.verbose(
         1,
