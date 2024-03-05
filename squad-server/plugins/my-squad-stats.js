@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v4.1.3';
+const currentVersion = 'v4.1.4';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -450,6 +450,11 @@ export default class MySquadStats extends BasePlugin {
           ...playerData,
           isAdmin: 1,
         };
+      } else {
+        playerData = {
+          ...playerData,
+          isAdmin: 0,
+        };
       }
       if (admin.reserve) {
         playerData = {
@@ -520,7 +525,7 @@ export default class MySquadStats extends BasePlugin {
         // Add removeWhitelist to the playerData
         playerData = {
           ...playerData,
-          removeWhitelist: 1,
+          removeAdmin: 1,
         };
         
         // Make API request to remove the admin
