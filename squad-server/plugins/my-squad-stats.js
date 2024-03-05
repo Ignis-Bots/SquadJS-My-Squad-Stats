@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v4.1.1';
+const currentVersion = 'v4.1.2';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -825,7 +825,7 @@ export default class MySquadStats extends BasePlugin {
     const currentKillstreak = this.trackedKillstreaks[eosID];
 
     // Return is the player's current killstreak is 0
-    if (currentKillstreak === 0) return;
+    if (!currentKillstreak || currentKillstreak === 0) return;
 
     try {
       // Patch Request to update highestKillstreak in API
@@ -972,3 +972,4 @@ async function getDataFromAPI(dataType, accessToken) {
     return handleApiError(error);
   }
 }
+ 
