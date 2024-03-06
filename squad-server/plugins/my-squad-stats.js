@@ -44,7 +44,7 @@ export default class MySquadStats extends BasePlugin {
     this.killstreakDisconnected = this.killstreakDisconnected.bind(this);
   }
 
-  async prepareToMount() { }
+  async prepareToMount() {}
 
   async mount() {
     // Post Request to create Server in API
@@ -138,7 +138,10 @@ export default class MySquadStats extends BasePlugin {
     this.server.removeEventListener('PLAYER_WOUNDED', this.killstreakWounded);
     this.server.removeEventListener('PLAYER_DIED', this.killstreakDied);
     this.server.removeEventListener('NEW_GAME', this.killstreakNewGame);
-    this.server.removeEventListener('PLAYER_DISCONNECTED', this.killstreakDisconnected);
+    this.server.removeEventListener(
+      'PLAYER_DISCONNECTED',
+      this.killstreakDisconnected
+    );
     clearInterval(this.pingInterval);
     clearInterval(this.getAdminsInterval);
   }
@@ -514,7 +517,7 @@ export default class MySquadStats extends BasePlugin {
       fs.writeFileSync(adminFilePath, JSON.stringify(adminData));
 
       // Add a delay before processing the next admin
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
     // After processing all the new admins, check for removed admins
@@ -723,7 +726,6 @@ export default class MySquadStats extends BasePlugin {
   async onPlayerDied(info) {
     // Killstreaks
     if (info.victim) {
-
     }
 
     // Post Request to create Death in API
@@ -800,7 +802,10 @@ export default class MySquadStats extends BasePlugin {
 
   async onPlayerConnected(info) {
     let playerData = {};
-    if (this.server.a2sPlayerCount <= 50 && this.server.currentLayer.gamemode === 'Seed') {
+    if (
+      this.server.a2sPlayerCount <= 50 &&
+      this.server.currentLayer.gamemode === 'Seed'
+    ) {
       playerData = {
         isSeeder: 1,
       };
@@ -848,7 +853,7 @@ export default class MySquadStats extends BasePlugin {
 
   async killstreakDied(info) {
     if (!info.victim.eosID) return;
-    this.verbose(1, `Killstreak Died`)
+    this.verbose(1, `Killstreak Died`);
     // GC Driod Support
     // Geonosian Hive
     const gcDroidFactions = [
@@ -859,10 +864,10 @@ export default class MySquadStats extends BasePlugin {
       'Droid Army - Snow',
       'Droid Army - Mech',
       'Droid Army - Halloween',
-      'Droid Army - Geonosis'
+      'Droid Army - Geonosis',
     ];
     // If info.victim.squad.teamName is in gcDroidFactions
-    if (gcDroidFactions.includes(info.victim.squad.teamName)) {
+    if (gcDroidFactions.includes(info?.victim?.squad?.teamName)) {
       this.verbose(2, `Droid Army Detected: ${info.victim.squad.teamName}`);
       // Call the onWound function with the info object
       this.killstreakWounded(info);
@@ -922,7 +927,10 @@ export default class MySquadStats extends BasePlugin {
         );
       }
     } catch (error) {
-      this.verbose(1, `Error updating highestKillstreak in database for ${eosID}: ${error}`);
+      this.verbose(
+        1,
+        `Error updating highestKillstreak in database for ${eosID}: ${error}`
+      );
     }
   }
 }
