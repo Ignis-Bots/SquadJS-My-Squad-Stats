@@ -726,38 +726,37 @@ export default class MySquadStats extends BasePlugin {
   async onPlayerDied(info) {
     // Killstreaks
     if (info.victim) {
-    }
-
-    // Post Request to create Death in API
-    const dataType = 'deaths';
-    const deathData = {
-      match: this.match ? this.match.id : null,
-      time: info.time,
-      woundTime: info.woundTime,
-      victim: info.victim ? info.victim.steamID : null,
-      victimEosID: info.victim ? info.victim.eosID : null,
-      victimName: info.victim ? info.victim.name : null,
-      victimTeamID: info.victim ? info.victim.teamID : null,
-      victimSquadID: info.victim ? info.victim.squadID : null,
-      attacker: info.attacker ? info.attacker.steamID : null,
-      attackerEosID: info.attacker ? info.attacker.eosID : null,
-      attackerName: info.attacker ? info.attacker.name : null,
-      attackerTeamID: info.attacker ? info.attacker.teamID : null,
-      attackerSquadID: info.attacker ? info.attacker.squadID : null,
-      damage: info.damage,
-      weapon: info.weapon,
-      teamkill: info.teamkill,
-    };
-    const response = await postDataToAPI(
-      dataType,
-      deathData,
-      this.options.accessToken
-    );
-    if (response.successStatus === 'Error') {
-      this.verbose(
-        1,
-        `Died-Death | ${response.successStatus} | ${response.successMessage}`
+      // Post Request to create Death in API
+      const dataType = 'deaths';
+      const deathData = {
+        match: this.match ? this.match.id : null,
+        time: info.time,
+        woundTime: info.woundTime,
+        victim: info.victim ? info.victim.steamID : null,
+        victimEosID: info.victim ? info.victim.eosID : null,
+        victimName: info.victim ? info.victim.name : null,
+        victimTeamID: info.victim ? info.victim.teamID : null,
+        victimSquadID: info.victim ? info.victim.squadID : null,
+        attacker: info.attacker ? info.attacker.steamID : null,
+        attackerEosID: info.attacker ? info.attacker.eosID : null,
+        attackerName: info.attacker ? info.attacker.name : null,
+        attackerTeamID: info.attacker ? info.attacker.teamID : null,
+        attackerSquadID: info.attacker ? info.attacker.squadID : null,
+        damage: info.damage,
+        weapon: info.weapon,
+        teamkill: info.teamkill,
+      };
+      const response = await postDataToAPI(
+        dataType,
+        deathData,
+        this.options.accessToken
       );
+      if (response.successStatus === 'Error') {
+        this.verbose(
+          1,
+          `Died-Death | ${response.successStatus} | ${response.successMessage}`
+        );
+      }
     }
   }
 
