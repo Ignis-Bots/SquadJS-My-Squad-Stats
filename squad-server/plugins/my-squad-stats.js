@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v4.1.7';
+const currentVersion = 'v4.1.8';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -851,8 +851,7 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async killstreakDied(info) {
-    if (!info.victim.eosID) return;
-    this.verbose(1, `Killstreak Died`);
+    if (!info.victim) return;
     // GC Driod Support
     // Geonosian Hive
     const gcDroidFactions = [
