@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v4.1.8';
+const currentVersion = 'v4.1.9';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -246,7 +246,18 @@ export default class MySquadStats extends BasePlugin {
       );
       if (fs.existsSync(filePath)) {
         this.verbose(1, 'Retrying failed POST requests...');
-        const failedRequests = JSON.parse(fs.readFileSync(filePath));
+        let failedRequests = JSON.parse(fs.readFileSync(filePath));
+
+        // Sort the array so that match requests come first
+        failedRequests.sort((a, b) => {
+          if (a.dataType === 'matches' && b.dataType !== 'matches') {
+            return -1;
+          } else if (a.dataType !== 'matches' && b.dataType === 'matches') {
+            return 1;
+          } else {
+            return 0;
+          }
+        });
         for (let i = 0; i < failedRequests.length; i++) {
           const request = failedRequests[i];
           const retryResponse = await postDataToAPI(
@@ -284,7 +295,18 @@ export default class MySquadStats extends BasePlugin {
       );
       if (fs.existsSync(patchFilePath)) {
         this.verbose(1, 'Retrying failed PATCH requests...');
-        const failedRequests = JSON.parse(fs.readFileSync(patchFilePath));
+        let failedRequests = JSON.parse(fs.readFileSync(patchFilePath));
+
+        // Sort the array so that match requests come first
+        failedRequests.sort((a, b) => {
+          if (a.dataType === 'matches' && b.dataType !== 'matches') {
+            return -1;
+          } else if (a.dataType !== 'matches' && b.dataType === 'matches') {
+            return 1;
+          } else {
+            return 0;
+          }
+        });
         for (let i = 0; i < failedRequests.length; i++) {
           const request = failedRequests[i];
           const retryResponse = await patchDataInAPI(
