@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v4.1.9';
+const currentVersion = 'v4.1.10';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -905,8 +905,14 @@ export default class MySquadStats extends BasePlugin {
     // Get an array of all the Steam IDs in the trackedKillstreaks object
     const eosIDs = Object.keys(this.trackedKillstreaks);
 
-    // Loop through the array and delete each key-value pair
+    // Loop through the array
     for (const eosID of eosIDs) {
+      if (this.trackedKillstreaks[eosID] > 0) {
+        // Update highestKillstreak in the SQL database
+        await this.updateHighestKillstreak(eosID);
+      }
+
+      // Remove the player from the trackedKillstreaks object
       delete this.trackedKillstreaks[eosID];
     }
   }
@@ -914,8 +920,13 @@ export default class MySquadStats extends BasePlugin {
   async killstreakDisconnected(info) {
     if (!info.eosID) return;
     const eosID = info.eosID;
+
     // Update highestKillstreak in the SQL database
-    await this.updateHighestKillstreak(eosID);
+    if (this.trackedKillstreaks.hasOwnProperty(eosID)) {
+      if (this.trackedKillstreaks[eosID] > 0) {
+        await this.updateHighestKillstreak(eosID);
+      }
+    }
 
     delete this.trackedKillstreaks[eosID];
   }
