@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v4.1.10';
+const currentVersion = 'v4.1.9';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -1010,22 +1010,18 @@ async function postDataToAPI(dataType, data, accessToken) {
         dataType: `${dataType}`,
         data: data,
       };
-
-      // Only store failed requests that are not of dataType 'playerKillstreaks'
-      if (dataType !== 'playerKillstreaks') {
-        const dirPath = path.join(__dirname, '..', '..', 'MySquadStats_Data');
-        if (!fs.existsSync(dirPath)) {
-          fs.mkdirSync(dirPath, { recursive: true });
-        }
-
-        const filePath = path.join(dirPath, 'send-retry-requests.json');
-        let failedRequests = [];
-        if (fs.existsSync(filePath)) {
-          failedRequests = JSON.parse(fs.readFileSync(filePath));
-        }
-        failedRequests.push(requestDetails);
-        fs.writeFileSync(filePath, JSON.stringify(failedRequests));
+      const dirPath = path.join(__dirname, '..', '..', 'MySquadStats_Data');
+      if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
       }
+
+      const filePath = path.join(dirPath, 'send-retry-requests.json');
+      let failedRequests = [];
+      if (fs.existsSync(filePath)) {
+        failedRequests = JSON.parse(fs.readFileSync(filePath));
+      }
+      failedRequests.push(requestDetails);
+      fs.writeFileSync(filePath, JSON.stringify(failedRequests));
     }
     return handleApiError(error);
   }
@@ -1049,22 +1045,18 @@ async function patchDataInAPI(dataType, data, accessToken) {
         dataType: `${dataType}`,
         data: data,
       };
-
-      // Only store failed requests that are not of dataType 'playerKillstreaks'
-      if (dataType !== 'playerKillstreaks') {
-        const dirPath = path.join(__dirname, '..', '..', 'MySquadStats_Data');
-        if (!fs.existsSync(dirPath)) {
-          fs.mkdirSync(dirPath, { recursive: true });
-        }
-
-        const filePath = path.join(dirPath, 'patch-retry-requests.json');
-        let failedRequests = [];
-        if (fs.existsSync(filePath)) {
-          failedRequests = JSON.parse(fs.readFileSync(filePath));
-        }
-        failedRequests.push(requestDetails);
-        fs.writeFileSync(filePath, JSON.stringify(failedRequests));
+      const dirPath = path.join(__dirname, '..', '..', 'MySquadStats_Data');
+      if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
       }
+
+      const filePath = path.join(dirPath, 'patch-retry-requests.json');
+      let failedRequests = [];
+      if (fs.existsSync(filePath)) {
+        failedRequests = JSON.parse(fs.readFileSync(filePath));
+      }
+      failedRequests.push(requestDetails);
+      fs.writeFileSync(filePath, JSON.stringify(failedRequests));
     }
     return handleApiError(error);
   }
