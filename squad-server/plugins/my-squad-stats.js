@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v4.1.10';
+const currentVersion = 'v4.2.1';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -175,7 +175,7 @@ export default class MySquadStats extends BasePlugin {
       }
     }
 
-    if (currentVersion < latestVersion) {
+    if (currentVersion.localeCompare(latestVersion, undefined, { numeric: true }) < 0) {
       this.verbose(1, `A new version of ${repo} is available. Updating...`);
 
       const updatedCodeUrl = `https://raw.githubusercontent.com/${currentOwner}/${repo}/${latestVersion}/squad-server/plugins/my-squad-stats.js`;
