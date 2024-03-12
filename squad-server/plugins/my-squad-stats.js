@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v4.2.1';
+const currentVersion = 'v4.2.2';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -175,7 +175,11 @@ export default class MySquadStats extends BasePlugin {
       }
     }
 
-    if (currentVersion.localeCompare(latestVersion, undefined, { numeric: true }) < 0) {
+    if (
+      currentVersion.localeCompare(latestVersion, undefined, {
+        numeric: true,
+      }) < 0
+    ) {
       this.verbose(1, `A new version of ${repo} is available. Updating...`);
 
       const updatedCodeUrl = `https://raw.githubusercontent.com/${currentOwner}/${repo}/${latestVersion}/squad-server/plugins/my-squad-stats.js`;
@@ -619,7 +623,7 @@ export default class MySquadStats extends BasePlugin {
     }
     const player = response.data[0];
     // If discordID is already linked, return error
-    if (player.discordID !== null) {
+    if (player.discordID !== 'Unknown') {
       await this.server.rcon.warn(
         info.player.steamID,
         `Your account is already linked.\nContact an MySquadStats.com if this is wrong.`
