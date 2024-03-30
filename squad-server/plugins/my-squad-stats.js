@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v4.2.2';
+const currentVersion = 'v4.2.3';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -44,7 +44,7 @@ export default class MySquadStats extends BasePlugin {
     this.killstreakDisconnected = this.killstreakDisconnected.bind(this);
   }
 
-  async prepareToMount() {}
+  async prepareToMount() { }
 
   async mount() {
     // Post Request to create Server in API
@@ -827,10 +827,7 @@ export default class MySquadStats extends BasePlugin {
 
   async onPlayerConnected(info) {
     let playerData = {};
-    if (
-      this.server.a2sPlayerCount <= 50 &&
-      this.server.currentLayer.gamemode === 'Seed'
-    ) {
+    if (this.server.a2sPlayerCount <= 50 && this.server.currentLayer && this.server.currentLayer.gamemode === 'Seed') {
       playerData = {
         isSeeder: 1,
       };
