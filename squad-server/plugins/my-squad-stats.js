@@ -44,7 +44,7 @@ export default class MySquadStats extends BasePlugin {
     this.killstreakDisconnected = this.killstreakDisconnected.bind(this);
   }
 
-  async prepareToMount() { }
+  async prepareToMount() {}
 
   async mount() {
     // Post Request to create Server in API
@@ -223,19 +223,6 @@ export default class MySquadStats extends BasePlugin {
     this.isProcessingFailedRequests = true;
 
     const __dirname = fileURLToPath(import.meta.url);
-    // If MySquadStats_Failed_Requests folder exists, delete it if empty to use the new folder
-    const failedRequestsFolderPath = path.join(
-      __dirname,
-      '..',
-      '..',
-      'MySquadStats_Failed_Requests'
-    );
-    if (fs.existsSync(failedRequestsFolderPath)) {
-      const files = fs.readdirSync(failedRequestsFolderPath);
-      if (files.length === 0) {
-        fs.rmdirSync(failedRequestsFolderPath);
-      }
-    }
     const dataType = 'ping';
     const response = await getDataFromAPI(dataType, this.options.accessToken);
     if (response.successMessage === 'pong') {
@@ -827,7 +814,11 @@ export default class MySquadStats extends BasePlugin {
 
   async onPlayerConnected(info) {
     let playerData = {};
-    if (this.server.a2sPlayerCount <= 50 && this.server.currentLayer && this.server.currentLayer.gamemode === 'Seed') {
+    if (
+      this.server.a2sPlayerCount <= 50 &&
+      this.server.currentLayer &&
+      this.server.currentLayer.gamemode === 'Seed'
+    ) {
       playerData = {
         isSeeder: 1,
       };
