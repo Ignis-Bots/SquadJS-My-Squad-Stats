@@ -230,56 +230,16 @@ export default class MySquadStats extends BasePlugin {
     const response = await getDataFromAPI(dataType, this.options.accessToken);
     if (response.successMessage === 'pong') {
       this.verbose(1, 'Pong! My Squad Stats is up and running.');
-      // Check for any failed requests and retry
-      const filePath = path.join(
+
+      const postFilePath = path.join(
         __dirname,
         '..',
         '..',
         'MySquadStats_Data',
         'send-retry-requests.json'
       );
-      if (fs.existsSync(filePath)) {
-        this.verbose(1, 'Retrying failed POST requests...');
-        let failedRequests = JSON.parse(fs.readFileSync(filePath));
+      await retryFailedRequests(postFilePath, postDataToAPI);
 
-        // Sort the array so that match requests come first
-        failedRequests.sort((a, b) => {
-          if (a.dataType === 'matches' && b.dataType !== 'matches') {
-            return -1;
-          } else if (a.dataType !== 'matches' && b.dataType === 'matches') {
-            return 1;
-          } else {
-            return 0;
-          }
-        });
-        for (let i = 0; i < failedRequests.length; i++) {
-          const request = failedRequests[i];
-          const retryResponse = await postDataToAPI(
-            request.dataType,
-            request.data,
-            this.options.accessToken
-          );
-          this.verbose(
-            1,
-            `${retryResponse.successStatus} | ${retryResponse.successMessage}`
-          );
-          if (retryResponse.successStatus === 'Success') {
-            // Remove the request from the array
-            failedRequests.splice(i, 1);
-            // Decrement i so the next iteration won't skip an item
-            i--;
-            // Write the updated failedRequests array back to the file
-            fs.writeFileSync(filePath, JSON.stringify(failedRequests));
-          }
-          // Wait for 5 seconds before processing the next request
-          await new Promise((resolve) => setTimeout(resolve, 5000));
-        }
-        // Delete the file if there are no more failed requests
-        if (failedRequests.length === 0) {
-          fs.unlinkSync(filePath);
-        }
-        this.verbose(1, 'Finished retrying failed POST requests.');
-      }
       const patchFilePath = path.join(
         __dirname,
         '..',
@@ -287,48 +247,7 @@ export default class MySquadStats extends BasePlugin {
         'MySquadStats_Data',
         'patch-retry-requests.json'
       );
-      if (fs.existsSync(patchFilePath)) {
-        this.verbose(1, 'Retrying failed PATCH requests...');
-        let failedRequests = JSON.parse(fs.readFileSync(patchFilePath));
-
-        // Sort the array so that match requests come first
-        failedRequests.sort((a, b) => {
-          if (a.dataType === 'matches' && b.dataType !== 'matches') {
-            return -1;
-          } else if (a.dataType !== 'matches' && b.dataType === 'matches') {
-            return 1;
-          } else {
-            return 0;
-          }
-        });
-        for (let i = 0; i < failedRequests.length; i++) {
-          const request = failedRequests[i];
-          const retryResponse = await patchDataInAPI(
-            request.dataType,
-            request.data,
-            this.options.accessToken
-          );
-          this.verbose(
-            1,
-            `${retryResponse.successStatus} | ${retryResponse.successMessage}`
-          );
-          if (retryResponse.successStatus === 'Success') {
-            // Remove the request from the array
-            failedRequests.splice(i, 1);
-            // Decrement i so the next iteration won't skip an item
-            i--;
-            // Write the updated failedRequests array back to the file
-            fs.writeFileSync(patchFilePath, JSON.stringify(failedRequests));
-          }
-          // Wait for 5 seconds before processing the next request
-          await new Promise((resolve) => setTimeout(resolve, 5000));
-        }
-        // Delete the file if there are no more failed requests
-        if (failedRequests.length === 0) {
-          fs.unlinkSync(patchFilePath);
-        }
-        this.verbose(1, 'Finished retrying failed PATCH requests.');
-      }
+      await retryFailedRequests(patchFilePath, patchDataInAPI);
     }
     this.isProcessingFailedRequests = false;
   }
@@ -995,6 +914,53 @@ function handleApiError(error) {
       successStatus: 'Error',
       successMessage: `Error: ${error.message}`,
     };
+  }
+}
+
+async function retryFailedRequests(filePath, apiFunction) {
+  if (fs.existsSync(filePath)) {
+    this.verbose(1, `Retrying failed requests from ${filePath}...`);
+    let failedRequests = JSON.parse(fs.readFileSync(filePath));
+
+    // Sort the array so that match requests come first
+    failedRequests.sort((a, b) => {
+      if (a.dataType === 'matches' && b.dataType !== 'matches') {
+        return -1;
+      } else if (a.dataType !== 'matches' && b.dataType === 'matches') {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
+
+    for (let i = 0; i < failedRequests.length; i++) {
+      const request = failedRequests[i];
+      const retryResponse = await apiFunction(
+        request.dataType,
+        request.data,
+        this.options.accessToken
+      );
+      this.verbose(
+        1,
+        `${retryResponse.successStatus} | ${retryResponse.successMessage}`
+      );
+      if (retryResponse.successStatus === 'Success') {
+        // Remove the request from the array
+        failedRequests.splice(i, 1);
+        // Decrement i so the next iteration won't skip an item
+        i--;
+        // Write the updated failedRequests array back to the file
+        fs.writeFileSync(filePath, JSON.stringify(failedRequests));
+      }
+      // Wait for 5 seconds before processing the next request
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+
+    // Delete the file if there are no more failed requests
+    if (failedRequests.length === 0) {
+      fs.unlinkSync(filePath);
+    }
+    this.verbose(1, `Finished retrying failed requests from ${filePath}.`);
   }
 }
 
