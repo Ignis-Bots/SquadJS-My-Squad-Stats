@@ -26,6 +26,11 @@ export default class MySquadStats extends BasePlugin {
         description: 'The access token to use for the database.',
         default: 'YOUR_ACCESS_TOKEN', // DO NOT MODIFY THIS - Change this in config.json!
       },
+      allowInGameStatsCommand: {
+        required: false,
+        description:
+          'Allow players to check their stats in-game via an AdminWarn.',
+      },
     };
   }
 
@@ -504,65 +509,91 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async onChatCommand(info) {
-    // Check if message is empty
-    if (info.message.length === 0) {
+    // Get the message
+    const message = info.message;
+
+    // Help Commands
+    if (
+      message === 'help' ||
+      message === 'commands' ||
+      message === 'cmds' ||
+      message === 'h' ||
+      message.length === 0
+    ) {
       await this.server.rcon.warn(
         info.player.steamID,
-        `Please input your Link Code given by MySquadStats.com.`
-      );
-      return;
-    }
-    // Check if message is not the right length
-    if (info.message.length !== 6) {
-      await this.server.rcon.warn(
-        info.player.steamID,
-        `Please input a valid 6-digit Link Code.`
-      );
-      return;
-    }
-    // Get Player from API
-    let dataType = `players?search=${info.player.steamID}`;
-    let response = await getDataFromAPI(dataType, this.options.accessToken);
-    if (response.successStatus === 'Error') {
-      await this.server.rcon.warn(
-        info.player.steamID,
-        `An error occurred while trying to link your account.\nPlease try again later.`
-      );
-      return;
-    }
-    const player = response.data[0];
-    // If discordID is already linked, return error
-    if (player.discordID !== 'Unknown') {
-      await this.server.rcon.warn(
-        info.player.steamID,
-        `Your account is already linked.\nContact an MySquadStats.com if this is wrong.`
+        `Commands:\n!mss link - Link to MySquadStats.com\n!mss stats - Check your stats`
       );
       return;
     }
 
-    // Post Request to link Player in API
-    dataType = 'playerLink';
-    const linkData = {
-      steamID: info.player.steamID,
-      code: info.message,
-    };
-    response = await postDataToAPI(
-      dataType,
-      linkData,
-      this.options.accessToken
-    );
-    if (response.successStatus === 'Error') {
+    if (message === 'link') {
+      // !mss link 123456
+      // Get the 6 digit number from the message
+      const linkCode = message.split(' ')[2];
+      // Check if linkCode is not the right length
+      if (linkCode !== 6) {
+        await this.server.rcon.warn(
+          info.player.steamID,
+          `Please input a valid 6-digit Link Code.\n\nExample: !mss link 123456`
+        );
+        return;
+      }
+      // Get Player from API
+      let dataType = `players?search=${info.player.steamID}`;
+      let response = await getDataFromAPI(dataType, this.options.accessToken);
+      if (response.successStatus === 'Error') {
+        await this.server.rcon.warn(
+          info.player.steamID,
+          `An error occurred while trying to link your account.\nPlease try again later.`
+        );
+        return;
+      }
+      const player = response.data[0];
+      // If discordID is already linked, return error
+      if (player.discordID !== 'Unknown') {
+        await this.server.rcon.warn(
+          info.player.steamID,
+          `Your account is already linked.\nContact an MySquadStats.com if this is wrong.`
+        );
+        return;
+      }
+
+      // Post Request to link Player in API
+      dataType = 'playerLink';
+      const linkData = {
+        steamID: info.player.steamID,
+        code: linkCode,
+      };
+      response = await postDataToAPI(
+        dataType,
+        linkData,
+        this.options.accessToken
+      );
+      if (response.successStatus === 'Error') {
+        await this.server.rcon.warn(
+          info.player.steamID,
+          `${response.successMessage}\nPlease try again later.`
+        );
+        return;
+      }
+
       await this.server.rcon.warn(
         info.player.steamID,
-        `${response.successMessage}\nPlease try again later.`
+        `Thank you for linking your accounts.`
       );
-      return;
+    } else if (message === 'stats') {
+      if (this.options.allowInGameStatsCommand === false) {
+        return this.server.rcon.warn(
+          info.player.steamID,
+          `This Server has disabled the in-game stats command.\n\nCheck your stats at MySquadStats.com`
+        );
+      }
+      await this.server.rcon.warn(
+        info.player.steamID,
+        `WIP.\n\nCheck your stats at MySquadStats.com`
+      );
     }
-
-    await this.server.rcon.warn(
-      info.player.steamID,
-      `Thank you for linking your accounts.`
-    );
   }
 
   async onNewGame(info) {
