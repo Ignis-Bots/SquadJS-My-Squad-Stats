@@ -38,6 +38,7 @@ export default class MySquadStats extends BasePlugin {
     super(server, options, connectors);
 
     this.onChatCommand = this.onChatCommand.bind(this);
+    this.onRoundEnded = this.onRoundEnded.bind(this);
     this.onNewGame = this.onNewGame.bind(this);
     this.onPlayerConnected = this.onPlayerConnected.bind(this);
     this.onPlayerWounded = this.onPlayerWounded.bind(this);
@@ -119,6 +120,7 @@ export default class MySquadStats extends BasePlugin {
 
     // Subscribe to events
     this.server.on(`CHAT_COMMAND:mss`, this.onChatCommand);
+    this.server.on('ROUND_ENDED', this.onRoundEnded);
     this.server.on('NEW_GAME', this.onNewGame);
     this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
     this.server.on('PLAYER_WOUNDED', this.onPlayerWounded);
@@ -138,6 +140,7 @@ export default class MySquadStats extends BasePlugin {
 
   async unmount() {
     this.server.removeEventListener(`CHAT_COMMAND:mss`, this.onChatCommand);
+    this.server.removeEventListener('ROUND_ENDED', this.onRoundEnded)
     this.server.removeEventListener('NEW_GAME', this.onNewGame);
     this.server.removeEventListener('PLAYER_CONNECTED', this.onPlayerConnected);
     this.server.removeEventListener('PLAYER_WOUNDED', this.onPlayerWounded);
@@ -586,6 +589,44 @@ export default class MySquadStats extends BasePlugin {
     }
   }
 
+  async onRoundEnded(info) {
+    const dataType = "matches";
+    let matchData = {};
+    if (!info.winner || !info.loser) {
+      matchData = {
+        endTime: info.time,
+        winningTeam: "Draw",
+        winningSubfaction: "Draw",
+        winningTickets: 0,
+        losingTeam: "Draw",
+        losingSubfaction: "Draw",
+        losingTickets: 0,
+      };
+    } else {
+      matchData = {
+        endTime: info.time,
+        winningTeam: info.winner.team,
+        winningSubfaction: info.winner.subfaction,
+        winningTickets: info.winner.tickets,
+        losingTeam: info.loser.team,
+        losingSubfaction: info.loser.subfaction,
+        losingTickets: info.loser.tickets,
+      };
+
+      const response = await patchDataInAPI(
+        dataType,
+        matchData,
+        this.options.accessToken
+      );
+      if (response.successStatus === "Error") {
+        this.verbose(
+          1,
+          `RoundEnded-Match | ${response.successStatus} | ${response.successMessage}`
+        );
+      }
+    }
+  }
+
   async onNewGame(info) {
     // Post Request to create Server in API
     let dataType = 'servers';
@@ -602,24 +643,6 @@ export default class MySquadStats extends BasePlugin {
       1,
       `NewGame-Server | ${serverResponse.successStatus} | ${serverResponse.successMessage}`
     );
-
-    // Patch Request to update last Match in API
-    dataType = 'matches';
-    const matchData = {
-      endTime: info.time,
-      winner: info.winner,
-    };
-    const updateResponse = await patchDataInAPI(
-      dataType,
-      matchData,
-      this.options.accessToken
-    );
-    if (updateResponse.successStatus === 'Error') {
-      this.verbose(
-        1,
-        `NewGame-Patch-Match | ${updateResponse.successStatus} | ${updateResponse.successMessage}`
-      );
-    }
 
     // Post Request to create new Match in API
     dataType = 'matches';
