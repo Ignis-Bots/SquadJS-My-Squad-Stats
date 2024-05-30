@@ -229,7 +229,9 @@ export default class MySquadStats extends BasePlugin {
         'MySquadStats_Data',
         'send-retry-requests.json'
       );
-      await retryFailedRequests(postFilePath, postDataToAPI);
+      if (fs.existsSync(postFilePath)) {
+        await retryFailedRequests(postFilePath, postDataToAPI);
+      }
 
       const patchFilePath = path.join(
         __dirname,
@@ -238,7 +240,9 @@ export default class MySquadStats extends BasePlugin {
         'MySquadStats_Data',
         'patch-retry-requests.json'
       );
-      await retryFailedRequests(patchFilePath, patchDataInAPI);
+      if (fs.existsSync(patchFilePath)) {
+        await retryFailedRequests(patchFilePath, patchDataInAPI);
+      }
     }
     this.isProcessingFailedRequests = false;
   }
@@ -935,50 +939,64 @@ function handleApiError(error) {
 }
 
 async function retryFailedRequests(filePath, apiFunction) {
-  if (fs.existsSync(filePath)) {
-    this.verbose(1, `Retrying failed requests from ${filePath}...`);
-    let failedRequests = JSON.parse(fs.readFileSync(filePath));
+  this.verbose(1, `Retrying failed requests from ${filePath}...`);
+  let failedRequests = JSON.parse(fs.readFileSync(filePath));
 
-    // Sort the array so that match requests come first
-    failedRequests.sort((a, b) => {
-      if (a.dataType === 'matches' && b.dataType !== 'matches') {
-        return -1;
-      } else if (a.dataType !== 'matches' && b.dataType === 'matches') {
-        return 1;
-      } else {
-        return 0;
-      }
-    });
+  // Send Ping to My Squad Stats with amount of failed requests
+  const pingDataType = 'ping';
+  const pingData = {
+    filePath: filePath,
+    failedRequests: failedRequests.length,
+  };
+  const pingResponse = await postDataToAPI(
+    pingDataType,
+    pingData,
+    this.options.accessToken
+  );
+  this.verbose(
+    1,
+    `Ping-MySquadStats | ${pingResponse.successStatus} | ${pingResponse.successMessage}`
+  );
 
-    for (let i = 0; i < failedRequests.length; i++) {
-      const request = failedRequests[i];
-      const retryResponse = await apiFunction(
-        request.dataType,
-        request.data,
-        this.options.accessToken
-      );
-      this.verbose(
-        1,
-        `${retryResponse.successStatus} | ${retryResponse.successMessage}`
-      );
-      if (retryResponse.successStatus === 'Success') {
-        // Remove the request from the array
-        failedRequests.splice(i, 1);
-        // Decrement i so the next iteration won't skip an item
-        i--;
-        // Write the updated failedRequests array back to the file
-        fs.writeFileSync(filePath, JSON.stringify(failedRequests));
-      }
-      // Wait for 5 seconds before processing the next request
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+  // Sort the array so that match requests come first
+  failedRequests.sort((a, b) => {
+    if (a.dataType === 'matches' && b.dataType !== 'matches') {
+      return -1;
+    } else if (a.dataType !== 'matches' && b.dataType === 'matches') {
+      return 1;
+    } else {
+      return 0;
     }
+  });
 
-    // Delete the file if there are no more failed requests
-    if (failedRequests.length === 0) {
-      fs.unlinkSync(filePath);
+  for (let i = 0; i < failedRequests.length; i++) {
+    const request = failedRequests[i];
+    const retryResponse = await apiFunction(
+      request.dataType,
+      request.data,
+      this.options.accessToken
+    );
+    this.verbose(
+      1,
+      `${retryResponse.successStatus} | ${retryResponse.successMessage}`
+    );
+    if (retryResponse.successStatus === 'Success') {
+      // Remove the request from the array
+      failedRequests.splice(i, 1);
+      // Decrement i so the next iteration won't skip an item
+      i--;
+      // Write the updated failedRequests array back to the file
+      fs.writeFileSync(filePath, JSON.stringify(failedRequests));
     }
-    this.verbose(1, `Finished retrying failed requests from ${filePath}.`);
+    // Wait for 5 seconds before processing the next request
+    await new Promise((resolve) => setTimeout(resolve, 5000));
   }
+
+  // Delete the file if there are no more failed requests
+  if (failedRequests.length === 0) {
+    fs.unlinkSync(filePath);
+  }
+  return this.verbose(1, `Finished retrying failed requests from ${filePath}.`);
 }
 
 async function postDataToAPI(dataType, data, accessToken) {
