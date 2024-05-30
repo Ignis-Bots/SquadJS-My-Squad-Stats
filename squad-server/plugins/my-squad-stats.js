@@ -8,7 +8,7 @@ import fs from "fs";
 
 import BasePlugin from "./base-plugin.js";
 
-const currentVersion = "v4.2.3";
+const currentVersion = "v5.0.0";
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
