@@ -531,7 +531,7 @@ export default class MySquadStats extends BasePlugin {
       if (linkCode !== 6) {
         await this.server.rcon.warn(
           info.player.steamID,
-          `Please input a valid 6-digit Link Code.\n\nExample: !mss link 123456`
+          `Please input a valid 6-digit Link Code.\nExample: !mss link 123456`
         );
         return;
       }
@@ -582,12 +582,12 @@ export default class MySquadStats extends BasePlugin {
       if (this.options.allowInGameStatsCommand === false) {
         return this.server.rcon.warn(
           info.player.steamID,
-          `This Server has disabled the in-game stats command.\n\nCheck your stats at MySquadStats.com`
+          `This Server has disabled the in-game stats command.\nCheck your stats at MySquadStats.com`
         );
       }
       await this.server.rcon.warn(
         info.player.steamID,
-        `WIP.\n\nCheck your stats at MySquadStats.com`
+        `WIP.\nCheck your stats at MySquadStats.com`
       );
     }
     return;
