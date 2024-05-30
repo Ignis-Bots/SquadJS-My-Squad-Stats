@@ -202,7 +202,7 @@ export default class MySquadStats extends BasePlugin {
     } else if (currentVersion > latestVersion) {
       this.verbose(
         1,
-        `You are running a newer version of ${repo} than the latest version.\nThis likely means you are running a pre-release version.\nCurrent version: ${currentVersion} Latest Version: ${latestVersion}\nhttps://github.com/${owner}/${repo}/releases`
+        `You are running a newer version of ${repo} than the latest version.\nThis likely means you are running a pre-release version.\nYour Current Version: ${currentVersion} Latest Version: ${latestVersion}\nhttps://github.com/${owner}/${repo}/releases`
       );
     } else if (currentVersion === latestVersion) {
       this.verbose(1, `You are running the latest version of ${repo}.`);
