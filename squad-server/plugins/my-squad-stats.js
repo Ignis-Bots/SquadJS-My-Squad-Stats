@@ -258,7 +258,7 @@ export default class MySquadStats extends BasePlugin {
       );
       if (fs.existsSync(postFilePath)) {
         this.verbose(1, `Retrying failed requests from ${postFilePath}...`);
-        const completed = await retryFailedRequests(postFilePath, postDataToAPI, this.options.accessToken);
+        const completed = await retryFailedRequests(postFilePath, retryPostDataToAPI, this.options.accessToken);
         this.verbose(1, completed)
       }
 
@@ -271,7 +271,7 @@ export default class MySquadStats extends BasePlugin {
       );
       if (fs.existsSync(patchFilePath)) {
         this.verbose(1, `Retrying failed requests from ${patchFilePath}...`);
-        const completed = await retryFailedRequests(patchFilePath, patchDataInAPI, this.options.accessToken);
+        const completed = await retryFailedRequests(patchFilePath, retryPatchDataInAPI, this.options.accessToken);
         this.verbose(1, completed)
       }
     }
@@ -1130,6 +1130,36 @@ async function getDataFromAPI(dataType, accessToken) {
   try {
     const response = await axios.get(
       `https://mysquadstats.com/api/${dataType}`,
+      {
+        params: { accessToken },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+async function retryPostDataToAPI(dataType, data, accessToken) {
+  try {
+    const response = await axios.post(
+      `https://mysquadstats.com/api/${dataType}`,
+      data,
+      {
+        params: { accessToken },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+async function retryPatchDataInAPI(dataType, data, accessToken) {
+  try {
+    const response = await axios.patch(
+      `https://mysquadstats.com/api/${dataType}`,
+      data,
       {
         params: { accessToken },
       }
