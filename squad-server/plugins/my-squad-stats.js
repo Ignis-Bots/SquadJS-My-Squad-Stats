@@ -8,7 +8,7 @@ import fs from "fs";
 
 import BasePlugin from "./base-plugin.js";
 
-const currentVersion = "v5.0.0";
+const currentVersion = "v5.0.1";
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -172,6 +172,55 @@ export default class MySquadStats extends BasePlugin {
       );
     }
 
+    const __DataDirname = fileURLToPath(import.meta.url);
+    // Create Update Cleared File
+    const updateClearedFilePath = path.join(
+      __DataDirname,
+      "..",
+      "..",
+      "MySquadStats_Data",
+      "update-cleared.json"
+    );
+
+    // Create Update Cleared if not exists with cleared: false
+    if (!fs.existsSync(updateClearedFilePath)) {
+      const data = JSON.stringify({ cleared: false }, null, 2);
+      fs.writeFileSync(updateClearedFilePath, data);
+    }
+
+    // If no update-cleared.json is false
+    const updateCleared = JSON.parse(fs.readFileSync(updateClearedFilePath));
+    if (!updateCleared.cleared) {
+      // Delete old Retry Json Files due to potential conflicting changes in the code
+      const retryPostFilePath = path.join(
+        __DataDirname,
+        "..",
+        "..",
+        "MySquadStats_Data",
+        "send-retry-requests.json"
+      );
+      if (fs.existsSync(retryPostFilePath)) {
+        fs.unlinkSync(retryPostFilePath);
+      }
+
+      const retryPatchFilePath = path.join(
+        __DataDirname,
+        "..",
+        "..",
+        "MySquadStats_Data",
+        "patch-retry-requests.json"
+      );
+      if (fs.existsSync(retryPatchFilePath)) {
+        fs.unlinkSync(retryPatchFilePath);
+      }
+
+      // Create the update-cleared.json file
+      fs.writeFileSync(
+        updateClearedFilePath,
+        JSON.stringify({ cleared: true })
+      );
+    }
+
     if (
       currentVersion.localeCompare(latestVersion, undefined, {
         numeric: true,
@@ -195,33 +244,26 @@ export default class MySquadStats extends BasePlugin {
       const filePath = path.join(__dirname, "my-squad-stats.js");
       fs.writeFileSync(filePath, updatedCode);
 
-      // Delete old Retry Json Files due to potential conflicting changes in the code
-      const retryPostFilePath = path.join(
-        __dirname,
-        "..",
-        "..",
-        "MySquadStats_Data",
-        "send-retry-requests.json"
+      // Set the update-cleared.json file to false
+      fs.writeFileSync(
+        updateClearedFilePath,
+        JSON.stringify({ cleared: false })
       );
-      if (fs.existsSync(retryPostFilePath)) {
-        fs.unlinkSync(retryPostFilePath);
-      }
-
-      const retryPatchFilePath = path.join(
-        __dirname,
-        "..",
-        "..",
-        "MySquadStats_Data",
-        "patch-retry-requests.json"
-      );
-      if (fs.existsSync(retryPatchFilePath)) {
-        fs.unlinkSync(retryPatchFilePath);
-      }
 
       this.verbose(
         1,
         `Successfully updated ${repo} to version ${latestVersion}`
       );
+
+      try {
+        // Your code that might throw an error
+        throw new Error(
+          `A new version of ${repo} is available. Please restart the server to apply the update.`
+        );
+      } catch (error) {
+        console.error(error);
+        process.exit(1); // Exit the process with a "failure" code
+      }
     } else if (currentVersion > latestVersion) {
       this.verbose(
         1,
@@ -258,8 +300,12 @@ export default class MySquadStats extends BasePlugin {
       );
       if (fs.existsSync(postFilePath)) {
         this.verbose(1, `Retrying failed requests from ${postFilePath}...`);
-        const completed = await retryFailedRequests(postFilePath, retryPostDataToAPI, this.options.accessToken);
-        this.verbose(1, completed)
+        const completed = await retryFailedRequests(
+          postFilePath,
+          retryPostDataToAPI,
+          this.options.accessToken
+        );
+        this.verbose(1, completed);
       }
 
       const patchFilePath = path.join(
@@ -271,8 +317,12 @@ export default class MySquadStats extends BasePlugin {
       );
       if (fs.existsSync(patchFilePath)) {
         this.verbose(1, `Retrying failed requests from ${patchFilePath}...`);
-        const completed = await retryFailedRequests(patchFilePath, retryPatchDataInAPI, this.options.accessToken);
-        this.verbose(1, completed)
+        const completed = await retryFailedRequests(
+          patchFilePath,
+          retryPatchDataInAPI,
+          this.options.accessToken
+        );
+        this.verbose(1, completed);
       }
     }
     this.isProcessingFailedRequests = false;
@@ -1009,12 +1059,10 @@ async function retryFailedRequests(filePath, apiFunction, accessToken) {
     filePath: filePath,
     failedRequests: failedRequests.length,
   };
-  const pingResponse = await postDataToAPI(
-    pingDataType,
-    pingData,
-    accessToken
+  const pingResponse = await postDataToAPI(pingDataType, pingData, accessToken);
+  console.log(
+    `Ping-MySquadStats | ${pingResponse.successStatus} | ${pingResponse.successMessage}`
   );
-  console.log(`Ping-MySquadStats | ${pingResponse.successStatus} | ${pingResponse.successMessage}`);
 
   // Sort the array so that match requests come first
   failedRequests.sort((a, b) => {
@@ -1034,7 +1082,9 @@ async function retryFailedRequests(filePath, apiFunction, accessToken) {
       request.data,
       accessToken
     );
-    console.log(`${retryResponse.successStatus} | ${retryResponse.successMessage}`);
+    console.log(
+      `${retryResponse.successStatus} | ${retryResponse.successMessage}`
+    );
     if (retryResponse.successStatus === "Success") {
       // Remove the request from the array
       failedRequests.splice(i, 1);
@@ -1052,7 +1102,7 @@ async function retryFailedRequests(filePath, apiFunction, accessToken) {
     fs.unlinkSync(filePath);
   }
 
-  let completed = `Finished retrying failed requests from ${filePath}.`
+  let completed = `Finished retrying failed requests from ${filePath}.`;
   return completed;
 }
 
