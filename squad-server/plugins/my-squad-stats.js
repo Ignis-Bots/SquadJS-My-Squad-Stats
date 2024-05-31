@@ -686,10 +686,10 @@ export default class MySquadStats extends BasePlugin {
     } else {
       matchData = {
         endTime: info.time,
-        winningTeam: info.winner.team,
+        winningTeam: info.winner.faction,
         winningSubfaction: info.winner.subfaction,
         winningTickets: info.winner.tickets,
-        losingTeam: info.loser.team,
+        losingTeam: info.loser.faction,
         losingSubfaction: info.loser.subfaction,
         losingTickets: info.loser.tickets,
       };
