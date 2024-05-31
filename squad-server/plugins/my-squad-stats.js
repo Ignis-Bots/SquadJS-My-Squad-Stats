@@ -195,6 +195,29 @@ export default class MySquadStats extends BasePlugin {
       const filePath = path.join(__dirname, "my-squad-stats.js");
       fs.writeFileSync(filePath, updatedCode);
 
+      // Delete old Retry Json Files due to potential conflicting changes in the code
+      const retryPostFilePath = path.join(
+        __dirname,
+        "..",
+        "..",
+        "MySquadStats_Data",
+        "send-retry-requests.json"
+      );
+      if (fs.existsSync(retryPostFilePath)) {
+        fs.unlinkSync(retryPostFilePath);
+      }
+
+      const retryPatchFilePath = path.join(
+        __dirname,
+        "..",
+        "..",
+        "MySquadStats_Data",
+        "patch-retry-requests.json"
+      );
+      if (fs.existsSync(retryPatchFilePath)) {
+        fs.unlinkSync(retryPatchFilePath);
+      }
+
       this.verbose(
         1,
         `Successfully updated ${repo} to version ${latestVersion}`
@@ -234,7 +257,9 @@ export default class MySquadStats extends BasePlugin {
         "send-retry-requests.json"
       );
       if (fs.existsSync(postFilePath)) {
-        await retryFailedRequests(postFilePath, postDataToAPI);
+        this.verbose(1, `Retrying failed requests from ${postFilePath}...`);
+        const completed = await retryFailedRequests(postFilePath, postDataToAPI, this.options.accessToken);
+        this.verbose(1, completed)
       }
 
       const patchFilePath = path.join(
@@ -245,7 +270,9 @@ export default class MySquadStats extends BasePlugin {
         "patch-retry-requests.json"
       );
       if (fs.existsSync(patchFilePath)) {
-        await retryFailedRequests(patchFilePath, patchDataInAPI);
+        this.verbose(1, `Retrying failed requests from ${patchFilePath}...`);
+        const completed = await retryFailedRequests(patchFilePath, patchDataInAPI, this.options.accessToken);
+        this.verbose(1, completed)
       }
     }
     this.isProcessingFailedRequests = false;
@@ -973,8 +1000,7 @@ function handleApiError(error) {
   }
 }
 
-async function retryFailedRequests(filePath, apiFunction) {
-  this.verbose(1, `Retrying failed requests from ${filePath}...`);
+async function retryFailedRequests(filePath, apiFunction, accessToken) {
   let failedRequests = JSON.parse(fs.readFileSync(filePath));
 
   // Send Ping to My Squad Stats with amount of failed requests
@@ -986,12 +1012,9 @@ async function retryFailedRequests(filePath, apiFunction) {
   const pingResponse = await postDataToAPI(
     pingDataType,
     pingData,
-    this.options.accessToken
+    accessToken
   );
-  this.verbose(
-    1,
-    `Ping-MySquadStats | ${pingResponse.successStatus} | ${pingResponse.successMessage}`
-  );
+  console.log(`Ping-MySquadStats | ${pingResponse.successStatus} | ${pingResponse.successMessage}`);
 
   // Sort the array so that match requests come first
   failedRequests.sort((a, b) => {
@@ -1009,12 +1032,9 @@ async function retryFailedRequests(filePath, apiFunction) {
     const retryResponse = await apiFunction(
       request.dataType,
       request.data,
-      this.options.accessToken
+      accessToken
     );
-    this.verbose(
-      1,
-      `${retryResponse.successStatus} | ${retryResponse.successMessage}`
-    );
+    console.log(`${retryResponse.successStatus} | ${retryResponse.successMessage}`);
     if (retryResponse.successStatus === "Success") {
       // Remove the request from the array
       failedRequests.splice(i, 1);
@@ -1031,7 +1051,9 @@ async function retryFailedRequests(filePath, apiFunction) {
   if (failedRequests.length === 0) {
     fs.unlinkSync(filePath);
   }
-  return this.verbose(1, `Finished retrying failed requests from ${filePath}.`);
+
+  let completed = `Finished retrying failed requests from ${filePath}.`
+  return completed;
 }
 
 async function postDataToAPI(dataType, data, accessToken) {
