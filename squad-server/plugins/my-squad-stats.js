@@ -678,7 +678,7 @@ const stats = statsResponse.data[0];
 
 await this.server.rcon.warn(
   info.player.steamID,
-  `★ Season / All-Time ★\nWounds: ${stats.seasonWounds} / ${stats.totalWounds}\nKills: ${stats.seasonKills} / ${stats.totalKills}\nDeaths: ${stats.seasonDeaths} / ${stats.totalDeaths}\nRevives: ${stats.seasonRevives} / ${stats.totalRevives}\nHighest Killstreak: ${stats.highestKillstreak}\n★ Stats are Delayed - MySquadStats.com ★`
+  `★ Season / All-Time ★\nWounds: ${stats.seasonWounds} / ${stats.totalWounds}\nKills: ${stats.seasonKills} / ${stats.totalKills}\nDeaths: ${stats.seasonDeaths} / ${stats.totalDeaths}\nRevives: ${stats.seasonRevives} / ${stats.totalRevives}\nHighest Killstreak: ${stats.seasonHighestKillstreak} / ${stats.totalHighestKillstreak}\n★ Stats are Delayed - MySquadStats.com ★`
 );
     }
     return;
