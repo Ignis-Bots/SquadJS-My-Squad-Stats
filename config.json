@@ -1,9 +1,9 @@
 // Add this in your Plugins Section
 // TOKENS are Provided by Ignis upon Signup to My Squad Stats
 
-
 {
-    "plugin": "MySquadStats",
-    "enabled": true,
-    "accessToken": "YOUR_ACCESS_TOKEN"
+  "plugin": "MySquadStats",
+  "enabled": true,
+  "accessToken": "YOUR_ACCESS_TOKEN",
+  "allowInGameStatsCommand": true
 }
