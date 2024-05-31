@@ -8,7 +8,7 @@ import fs from "fs";
 
 import BasePlugin from "./base-plugin.js";
 
-const currentVersion = "v5.0.2";
+const currentVersion = "v5.1.0";
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -662,10 +662,24 @@ export default class MySquadStats extends BasePlugin {
           `This Server has disabled the in-game stats command.\nCheck your stats at MySquadStats.com`
         );
       }
-      await this.server.rcon.warn(
-        info.player.steamID,
-        `WIP.\nCheck your stats at MySquadStats.com`
-      );
+
+// Get InGameStats from API
+const dataType = `inGameStats?search=${info.player.steamID}&dlc=${this.match.dlc}`;
+const statsResponse = await getDataFromAPI(dataType, this.options.accessToken);
+
+// Check if the response is valid
+if (!statsResponse || !statsResponse.data || statsResponse.data.length === 0) {
+  await this.server.rcon.warn(info.player.steamID, "Error: No stats data received.\nMySquadStats.com may be down.");
+  return;
+}
+
+// Extract the stats from the response
+const stats = statsResponse.data[0];
+
+await this.server.rcon.warn(
+  info.player.steamID,
+  `★ Season / All-Time ★\nWounds: ${stats.seasonWounds} / ${stats.totalWounds}\nKills: ${stats.seasonKills} / ${stats.totalKills}\nDeaths: ${stats.seasonDeaths} / ${stats.totalDeaths}\nRevives: ${stats.seasonRevives} / ${stats.totalRevives}\nHighest Killstreak: ${stats.highestKillstreak}\n★ Stats are Delayed - MySquadStats.com ★`
+);
     }
     return;
   }
