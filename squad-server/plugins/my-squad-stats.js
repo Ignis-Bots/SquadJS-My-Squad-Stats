@@ -172,11 +172,10 @@ export default class MySquadStats extends BasePlugin {
       );
     }
 
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
+    const __DataDirname = fileURLToPath(import.meta.url);
     // Create Update Cleared File
     const updateClearedFilePath = path.join(
-      __dirname,
+      __DataDirname,
       "..",
       "..",
       "MySquadStats_Data",
@@ -194,7 +193,7 @@ export default class MySquadStats extends BasePlugin {
     if (!updateCleared.cleared) {
       // Delete old Retry Json Files due to potential conflicting changes in the code
       const retryPostFilePath = path.join(
-        __dirname,
+        __DataDirname,
         "..",
         "..",
         "MySquadStats_Data",
@@ -205,7 +204,7 @@ export default class MySquadStats extends BasePlugin {
       }
 
       const retryPatchFilePath = path.join(
-        __dirname,
+        __DataDirname,
         "..",
         "..",
         "MySquadStats_Data",
@@ -216,7 +215,10 @@ export default class MySquadStats extends BasePlugin {
       }
 
       // Create the update-cleared.json file
-      fs.writeFileSync(updateClearedFilePath, JSON.stringify({ cleared: true }));
+      fs.writeFileSync(
+        updateClearedFilePath,
+        JSON.stringify({ cleared: true })
+      );
     }
 
     if (
@@ -238,16 +240,30 @@ export default class MySquadStats extends BasePlugin {
         return;
       }
 
+      const __dirname = path.dirname(fileURLToPath(import.meta.url));
       const filePath = path.join(__dirname, "my-squad-stats.js");
       fs.writeFileSync(filePath, updatedCode);
 
       // Set the update-cleared.json file to false
-      fs.writeFileSync(updateClearedFilePath, JSON.stringify({ cleared: false }));
+      fs.writeFileSync(
+        updateClearedFilePath,
+        JSON.stringify({ cleared: false })
+      );
 
       this.verbose(
         1,
         `Successfully updated ${repo} to version ${latestVersion}`
       );
+
+      try {
+        // Your code that might throw an error
+        throw new Error(
+          `A new version of ${repo} is available. Please restart the server to apply the update.`
+        );
+      } catch (error) {
+        console.error(error);
+        process.exit(1); // Exit the process with a "failure" code
+      }
     } else if (currentVersion > latestVersion) {
       this.verbose(
         1,
