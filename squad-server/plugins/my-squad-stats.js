@@ -8,7 +8,7 @@ import fs from "fs";
 
 import BasePlugin from "./base-plugin.js";
 
-const currentVersion = "v5.1.0";
+const currentVersion = "v5.1.1";
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -30,6 +30,16 @@ export default class MySquadStats extends BasePlugin {
         required: false,
         description:
           "Allow players to check their stats in-game via an AdminWarn.",
+      },
+      usingWhitelister: {
+        required: false,
+        description:
+          "Set to true if you are using JetDave's Whitelister Plugin.",
+      },
+      whitelisterInstructions: {
+        required: false,
+        description:
+          "Instructions for linking with your Whitelister Plugin.",
       },
     };
   }
@@ -593,11 +603,15 @@ export default class MySquadStats extends BasePlugin {
       message === "h" ||
       message.length === 0
     ) {
-      await this.server.rcon.warn(
-        info.player.steamID,
-        `Commands:\n!mss link - Link to MySquadStats.com\n!mss stats - Check your stats`
-      );
-      return;
+      let warningMessage = `Commands:`;
+      if (this.options.allowInGameStatsCommand === true) {
+        warningMessage += `\n!mss stats - Check your stats`;
+      }
+      if (this.options.usingWhitelister === true && this.options.whitelisterInstructions) {
+        warningMessage += `\n${this.options.whitelisterInstructions}`;
+      } else {
+        warningMessage += `\n!mss link "code" - Link to MySquadStats.com`;
+      }
     }
 
     if (message === "link") {
