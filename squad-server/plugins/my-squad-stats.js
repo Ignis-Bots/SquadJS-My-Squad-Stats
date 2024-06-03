@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.1.2';
+const currentVersion = 'v5.2.0';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -92,40 +92,6 @@ export default class MySquadStats extends BasePlugin {
       1,
       `Mount-Match | ${matchResponse.successStatus} | ${matchResponse.successMessage}`
     );
-
-    // Get Admins
-    const admins = await this.server.getAdminsWithPermission('canseeadminchat');
-    // Make a players request to the API for each admin
-    for (let i = 0; i < admins.length; i++) {
-      const adminId = admins[i];
-      let playerData = {};
-
-      if (adminId.length === 17) {
-        playerData = {
-          steamID: adminId,
-          isAdmin: 1,
-        };
-      } else {
-        playerData = {
-          eosID: adminId,
-          isAdmin: 1,
-        };
-      }
-
-      const dataType = 'players';
-      const response = await patchDataInAPI(
-        dataType,
-        playerData,
-        this.options.accessToken
-      );
-      // Only log the response if it's an error
-      if (response.successStatus === 'Error') {
-        this.verbose(
-          1,
-          `Mount-Admins | ${response.successStatus} | ${response.successMessage}`
-        );
-      }
-    }
 
     // Subscribe to events
     this.server.on(`CHAT_COMMAND:mss`, this.onChatCommand);
@@ -426,173 +392,29 @@ export default class MySquadStats extends BasePlugin {
         }
       }
     }
-    this.verbose(1, `${Object.keys(admins).length} admins loaded...`);
+    this.verbose(1, `${Object.keys(admins).length} Admins/Reserve loaded...`);
 
-    let existingAdmins = {};
-    const adminFilePath = path.join(
-      __dirname,
-      '..',
-      '..',
-      'MySquadStats_Data',
-      'admins.json'
+    // Post Request to Admins API
+    console.log(admins);
+    const dataType = 'admins';
+    const response = await postDataToAPI(
+      dataType,
+      admins,
+      this.options.accessToken
     );
 
-    for (let adminId in admins) {
-      let admin = admins[adminId];
-
-      // Check if the admin is already in the local json file
-      // If they are, check if they have the same permissions
-      // If the permissions are different, proceed, otherwise continue
-
-      // Read the existing admins from the admins.json file
-      if (fs.existsSync(adminFilePath)) {
-        existingAdmins = JSON.parse(fs.readFileSync(adminFilePath));
-      }
-
-      let adminData = {};
-      if (fs.existsSync(adminFilePath)) {
-        adminData = JSON.parse(fs.readFileSync(adminFilePath));
-      }
-      if (adminId in adminData) {
-        const localAdmin = adminData[adminId];
-        if (JSON.stringify(localAdmin) !== JSON.stringify(admin)) {
-          // If the permissions are different, update the local json file
-          adminData[adminId] = admin;
-          fs.writeFileSync(adminFilePath, JSON.stringify(adminData));
-          this.verbose(
-            2,
-            `Updated Admin ${adminId} in local json file with new permissions`
-          );
-        } else {
-          this.verbose(
-            2,
-            `Admin ${adminId} is already in local json file with the same permissions`
-          );
-          continue;
-        }
-      }
-
-      let playerData = {};
-      // Check if the admin is a steamID or an EOS ID
-      if (adminId.length === 17) {
-        playerData = {
-          steamID: adminId,
-        };
-      } else {
-        playerData = {
-          eosID: adminId,
-        };
-      }
-
-      // Add the permissions to the playerData
-      if (admin.canseeadminchat) {
-        playerData = {
-          ...playerData,
-          isAdmin: 1,
-        };
-      } else {
-        playerData = {
-          ...playerData,
-          isAdmin: 0,
-        };
-      }
-      if (admin.reserve) {
-        playerData = {
-          ...playerData,
-          isReserve: 1,
-        };
-      } else {
-        playerData = {
-          ...playerData,
-          isReserve: 0,
-        };
-      }
-
-      // Add the discordUsername to the playerData if it exists
-      if (admin.discordUsername !== null) {
-        playerData = {
-          ...playerData,
-          discordUsername: admin.discordUsername,
-        };
-      }
-
-      const dataType = 'players';
-      const response = await patchDataInAPI(
-        dataType,
-        playerData,
-        this.options.accessToken
+    console.log(response);
+    if (response.successStatus === 'Error') {
+      this.verbose(
+        1,
+        `Admins-Admins | ${response.successStatus} | ${response.successMessage}`
       );
-      // Only log the response if it's an error
-      if (response.successStatus === 'Error') {
-        this.verbose(
-          1,
-          `GetAdmins-Player | ${response.successStatus} | ${response.successMessage}`
-        );
-        continue;
-      }
-
-      // Store admin in local json file
-      adminData[adminId] = admin;
-
-      const adminDirPath = path.dirname(adminFilePath);
-
-      // Create the directory if it doesn't exist
-      if (!fs.existsSync(adminDirPath)) {
-        fs.mkdirSync(adminDirPath, { recursive: true });
-      }
-
-      fs.writeFileSync(adminFilePath, JSON.stringify(adminData));
-
-      // Add a delay before processing the next admin
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+    } else {
+      this.verbose(
+        1,
+        `Admins-Admins | ${response.successStatus} | ${response.successMessage}`
+      );
     }
-
-    // After processing all the new admins, check for removed admins
-    for (let adminId in existingAdmins) {
-      if (!(adminId in admins)) {
-        let playerData = {};
-        // Check if the admin is a steamID or an EOS ID
-        if (adminId.length === 17) {
-          playerData = {
-            steamID: adminId,
-          };
-        } else {
-          playerData = {
-            eosID: adminId,
-          };
-        }
-
-        // Add removeWhitelist to the playerData
-        playerData = {
-          ...playerData,
-          removeAdmin: 1,
-        };
-
-        // Make API request to remove the admin
-        const dataType = 'players';
-        const response = await patchDataInAPI(
-          dataType,
-          playerData,
-          this.options.accessToken
-        );
-        // Only log the response if it's an error
-        if (response.successStatus === 'Error') {
-          this.verbose(
-            1,
-            `GetAdmins-Remove | ${response.successStatus} | ${response.successMessage}`
-          );
-        }
-
-        // This admin was removed
-        this.verbose(1, `Admin ${adminId} was removed`);
-
-        // Remove the admin from the existingAdmins object
-        delete existingAdmins[adminId];
-      }
-    }
-
-    // Write the updated existingAdmins object back to the admins.json file
-    fs.writeFileSync(adminFilePath, JSON.stringify(existingAdmins));
     return;
   }
 
