@@ -191,6 +191,12 @@ export default class MySquadStats extends BasePlugin {
       'update-cleared.json'
     );
 
+    // Create the directory if it does not exist
+    const dir = path.dirname(updateClearedFilePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
     // Create Update Cleared if not exists with cleared: false
     if (!fs.existsSync(updateClearedFilePath)) {
       const data = JSON.stringify({ cleared: false }, null, 2);
