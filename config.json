@@ -5,5 +5,7 @@
   "plugin": "MySquadStats",
   "enabled": true,
   "accessToken": "YOUR_ACCESS_TOKEN",
-  "allowInGameStatsCommand": true
+  "allowInGameStatsCommand": true,
+  "usingWhitelister": false,
+  "whitelisterInstructions": "Example: Visit Unnamed Discord for Linking"
 }

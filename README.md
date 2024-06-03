@@ -25,3 +25,5 @@
 - Add `my-squad-stats.js` to your `./squad-server/plugins` folder.
 - Add to your `config.json`
     - You WILL need to get your access token from Ignis to fully set the `config.json` file up.
+    - `allowInGameStatsCommand` will allow or disallow the use of the `!mss stats` Command in your Server.
+    - `usingWhitelister` and `whitelisterInstructions` are only to be used if you are both using JetDave's Whitelister AND have provided an Access Key to MySquadStats so that we can link your linked Whitelister Players.
