@@ -675,7 +675,7 @@ export default class MySquadStats extends BasePlugin {
 
       await this.server.rcon.warn(
         info.player.steamID,
-        `Thank you for linking your accounts.`
+        `Thank you for linking your accounts.\nView your Stats at MySquadStats.com`
       );
     } else if (message === 'stats') {
       if (this.options.allowInGameStatsCommand === false) {
