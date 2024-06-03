@@ -12,7 +12,7 @@ const currentVersion = 'v5.2.0';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
-    return 'The <code>MySquadStats/code> plugin will log various server statistics and events to a central database for player stat tracking.';
+    return 'The <code>MySquadStats.com</code> plugin will log various server statistics and events to a central database for player stat tracking.';
   }
 
   static get defaultEnabled() {
@@ -81,7 +81,7 @@ export default class MySquadStats extends BasePlugin {
       `Mount-Server | ${response.successStatus} | ${response.successMessage}`
     );
 
-    // Get Request to get Match Info from API
+    // GET Request to get Match Info from API
     dataType = 'matches';
     const matchResponse = await getDataFromAPI(
       dataType,
@@ -107,9 +107,9 @@ export default class MySquadStats extends BasePlugin {
     this.server.on('PLAYER_DISCONNECTED', this.killstreakDisconnected);
     // Check for updates in GitHub
     this.checkVersion();
-    // Every minute, ping My Squad Stats
+    // Every 1 minute, ping My Squad Stats
     this.pingInterval = setInterval(this.pingMySquadStats.bind(this), 60000);
-    // Every 30 minutes, get the admins from the server and update the database
+    // Every 30 minutes, send Admins and Whitelisters to MySquadStats
     this.getAdminsInterval = setInterval(this.getAdmins.bind(this), 1800000);
   }
 
@@ -169,10 +169,9 @@ export default class MySquadStats extends BasePlugin {
       fs.writeFileSync(updateClearedFilePath, data);
     }
 
-    // If no update-cleared.json is false
     const updateCleared = JSON.parse(fs.readFileSync(updateClearedFilePath));
     if (!updateCleared.cleared) {
-      // Delete old Retry Json Files due to potential conflicting changes in the code
+      // Delete old Retry json Files due to potential conflicting changes in the code
       const retryPostFilePath = path.join(
         __DataDirname,
         '..',
@@ -195,7 +194,7 @@ export default class MySquadStats extends BasePlugin {
         fs.unlinkSync(retryPatchFilePath);
       }
 
-      // Create the update-cleared.json file
+      // Create/Update the update-cleared.json file
       fs.writeFileSync(
         updateClearedFilePath,
         JSON.stringify({ cleared: true })
@@ -237,13 +236,13 @@ export default class MySquadStats extends BasePlugin {
       );
 
       try {
-        // Your code that might throw an error
+        // Throw Error to Crash SquadJS forcing a Restart to use the new code
         throw new Error(
           `A new version of ${repo} is available. Please restart the server to apply the update.`
         );
       } catch (error) {
         console.error(error);
-        process.exit(1); // Exit the process with a "failure" code
+        process.exit(1);
       }
     } else if (currentVersion > latestVersion) {
       this.verbose(
@@ -403,7 +402,6 @@ export default class MySquadStats extends BasePlugin {
       this.options.accessToken
     );
 
-    console.log(response);
     if (response.successStatus === 'Error') {
       this.verbose(
         1,
@@ -445,7 +443,6 @@ export default class MySquadStats extends BasePlugin {
     }
 
     if (message.startsWith('link')) {
-      // !mss link 123456
       // Get the 6 digit number from the message
       const linkCode = message.split(' ')[1];
       // Check if linkCode is not the right length
@@ -655,7 +652,6 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async onPlayerDied(info) {
-    // Killstreaks
     if (info.victim) {
       // Post Request to create Death in API
       const dataType = 'deaths';
@@ -881,7 +877,7 @@ export default class MySquadStats extends BasePlugin {
   }
 }
 
-// Retrieve the latest version from GitHub
+// Retrieve the latest version of code from GitHub
 async function getLatestVersion(owner, repo) {
   const url = `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
   const response = await fetch(url);
