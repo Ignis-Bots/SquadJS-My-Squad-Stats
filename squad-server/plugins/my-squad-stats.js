@@ -394,7 +394,6 @@ export default class MySquadStats extends BasePlugin {
     this.verbose(1, `${Object.keys(admins).length} Admins/Reserve loaded...`);
 
     // Post Request to Admins API
-    console.log(admins);
     const dataType = 'admins';
     const response = await postDataToAPI(
       dataType,
