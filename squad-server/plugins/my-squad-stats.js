@@ -621,7 +621,7 @@ export default class MySquadStats extends BasePlugin {
     // Post Request to create Wound in API
     const dataType = 'wounds';
     const woundData = {
-      match: this.match ? this.match.id : null,
+      match: this.match && this.match.id ? this.match.id : null,
       time: info.time,
       victim: info.victim ? info.victim.steamID : null,
       victimEosID: info.victim ? info.victim.eosID : null,
@@ -656,7 +656,7 @@ export default class MySquadStats extends BasePlugin {
       // Post Request to create Death in API
       const dataType = 'deaths';
       const deathData = {
-        match: this.match ? this.match.id : null,
+        match: this.match && this.match.id ? this.match.id : null,
         time: info.time,
         woundTime: info.woundTime,
         victim: info.victim ? info.victim.steamID : null,
@@ -692,7 +692,7 @@ export default class MySquadStats extends BasePlugin {
     // Post Request to create Revive in API
     const dataType = 'revives';
     const reviveData = {
-      match: this.match ? this.match.id : null,
+      match: this.match && this.match.id ? this.match.id : null,
       time: info.time,
       woundTime: info.woundTime,
       victim: info.victim ? info.victim.steamID : null,
@@ -854,7 +854,7 @@ export default class MySquadStats extends BasePlugin {
       const playerData = {
         eosID: eosID,
         highestKillstreak: currentKillstreak,
-        match: this.match ? this.match.id : null,
+        match: this.match && this.match.id ? this.match.id : null,
       };
       const response = await patchDataInAPI(
         dataType,
