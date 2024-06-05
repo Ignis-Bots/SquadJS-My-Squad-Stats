@@ -540,7 +540,7 @@ export default class MySquadStats extends BasePlugin {
     if (!info.winner || !info.loser) {
       matchData = {
         endTime: info.time,
-        winningTeamId: 0,
+        winningTeamID: 0,
         winningTeam: 'Draw',
         winningSubfaction: 'Draw',
         winningTickets: 0,
@@ -552,7 +552,7 @@ export default class MySquadStats extends BasePlugin {
     } else {
       matchData = {
         endTime: info.time,
-        winningTeamId: info.winner.team,
+        winningTeamID: info.winner.team,
         winningTeam: info.winner.faction,
         winningSubfaction: info.winner.subfaction,
         winningTickets: info.winner.tickets,
