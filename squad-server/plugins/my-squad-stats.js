@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.3.0';
+const currentVersion = 'v5.3.1';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -1038,6 +1038,13 @@ async function retryFailedRequests(filePath, apiFunction, accessToken) {
       `${retryResponse.successStatus} | ${retryResponse.successMessage}`
     );
     if (retryResponse.successStatus === 'Success') {
+      // Remove the request from the array
+      failedRequests.splice(i, 1);
+      // Decrement i so the next iteration won't skip an item
+      i--;
+      // Write the updated failedRequests array back to the file
+      fs.writeFileSync(filePath, JSON.stringify(failedRequests));
+    } else if (retryResponse.successStatus === 'Error') {
       // Remove the request from the array
       failedRequests.splice(i, 1);
       // Decrement i so the next iteration won't skip an item
