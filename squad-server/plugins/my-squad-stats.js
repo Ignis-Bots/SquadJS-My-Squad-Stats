@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.2.0';
+const currentVersion = 'v5.3.0';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -111,6 +111,7 @@ export default class MySquadStats extends BasePlugin {
     this.pingInterval = setInterval(this.pingMySquadStats.bind(this), 60000);
     // Every 30 minutes, send Admins and Whitelisters to MySquadStats
     this.getAdminsInterval = setInterval(this.getAdmins.bind(this), 1800000);
+    this.getPlayersInterval = setInterval(this.getPlayers.bind(this), 60000);
   }
 
   async unmount() {
@@ -130,6 +131,7 @@ export default class MySquadStats extends BasePlugin {
     );
     clearInterval(this.pingInterval);
     clearInterval(this.getAdminsInterval);
+    clearInterval(this.getPlayersInterval);
   }
 
   async checkVersion() {
@@ -410,6 +412,89 @@ export default class MySquadStats extends BasePlugin {
       this.verbose(
         1,
         `Admins-Admins | ${response.successStatus} | ${response.successMessage}`
+      );
+    }
+    return;
+  }
+
+  async getPlayers() {
+    this.verbose(1, 'Getting Players...');
+    const players = await this.server.rcon.getListPlayers();
+    const squads = await this.server.rcon.getSquads();
+
+    // Get Match ID
+    const matchID = this.match && this.match.id ? this.match.id : null;
+
+    // Initialize an object to hold teams
+    const teams = {
+      1: {
+        teamID: '1',
+        teamName: 'Team 1',
+        matchID,
+        squads: [
+          {
+            squadID: '0',
+            squadName: 'Unassigned',
+            teamID: '1',
+            isCommandSquad: false,
+            players: [],
+          },
+        ],
+      },
+      2: {
+        teamID: '2',
+        teamName: 'Team 2',
+        matchID,
+        squads: [
+          {
+            squadID: '0',
+            squadName: 'Unassigned',
+            teamID: '2',
+            isCommandSquad: false,
+            players: [],
+          },
+        ],
+      },
+    };
+
+    // Iterate over each squad
+    for (const squad of squads) {
+      // Add the squad to the team
+      teams[squad.teamID].squads.push({
+        ...squad,
+        isCommandSquad: squad.squadName === 'Command Squad',
+        players: players.filter((player) => player.squadID === squad.squadID),
+      });
+    }
+
+    // Add unassigned players to the "Unassigned" squad
+    for (const player of players) {
+      if (player.squadID === null) {
+        teams[player.teamID].squads[0].players.push(player);
+      }
+    }
+
+    // Update the size of the "Unassigned" squad
+    for (const teamID in teams) {
+      const unassignedSquad = teams[teamID].squads[0];
+      unassignedSquad.size = unassignedSquad.players.length;
+    }
+
+    // Convert the teams object to an array
+    const playersData = Object.values(teams);
+
+    // POST serversPlayers to API
+    const dataType = 'serversPlayers';
+    const response = await postDataToAPI(
+      dataType,
+      playersData,
+      this.options.accessToken
+    );
+
+    if (response.successStatus === 'Error') {
+      this.verbose(
+        1,
+        `Players-Players | ${response.successStatus} | ${response.successMessage}`
       );
     }
     return;
