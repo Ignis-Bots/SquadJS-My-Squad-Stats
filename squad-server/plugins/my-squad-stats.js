@@ -463,7 +463,10 @@ export default class MySquadStats extends BasePlugin {
       teams[squad.teamID].squads.push({
         ...squad,
         isCommandSquad: squad.squadName === 'Command Squad',
-        players: players.filter((player) => player.squadID === squad.squadID),
+        players: players.filter(
+          (player) =>
+            player.squadID === squad.squadID && player.teamID === squad.teamID
+        ),
       });
     }
 
