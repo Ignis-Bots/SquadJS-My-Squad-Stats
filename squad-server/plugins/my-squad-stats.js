@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.3.2';
+const currentVersion = 'v5.3.3';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -632,7 +632,7 @@ export default class MySquadStats extends BasePlugin {
         winningTeam: 'Draw',
         winningSubfaction: 'Draw',
         winningTickets: 0,
-        losingTeamId: 0,
+        losingTeamID: 0,
         losingTeam: 'Draw',
         losingSubfaction: 'Draw',
         losingTickets: 0,
@@ -644,7 +644,7 @@ export default class MySquadStats extends BasePlugin {
         winningTeam: info.winner.faction,
         winningSubfaction: info.winner.subfaction,
         winningTickets: info.winner.tickets,
-        losingTeamId: info.loser.team,
+        losingTeamID: info.loser.team,
         losingTeam: info.loser.faction,
         losingSubfaction: info.loser.subfaction,
         losingTickets: info.loser.tickets,
