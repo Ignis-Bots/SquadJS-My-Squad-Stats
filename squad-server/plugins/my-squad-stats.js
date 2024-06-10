@@ -8,11 +8,11 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.1.2';
+const currentVersion = 'v5.3.2';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
-    return 'The <code>MySquadStats/code> plugin will log various server statistics and events to a central database for player stat tracking.';
+    return 'The <code>MySquadStats.com</code> plugin will log various server statistics and events to a central database for player stat tracking.';
   }
 
   static get defaultEnabled() {
@@ -81,7 +81,7 @@ export default class MySquadStats extends BasePlugin {
       `Mount-Server | ${response.successStatus} | ${response.successMessage}`
     );
 
-    // Get Request to get Match Info from API
+    // GET Request to get Match Info from API
     dataType = 'matches';
     const matchResponse = await getDataFromAPI(
       dataType,
@@ -92,40 +92,6 @@ export default class MySquadStats extends BasePlugin {
       1,
       `Mount-Match | ${matchResponse.successStatus} | ${matchResponse.successMessage}`
     );
-
-    // Get Admins
-    const admins = await this.server.getAdminsWithPermission('canseeadminchat');
-    // Make a players request to the API for each admin
-    for (let i = 0; i < admins.length; i++) {
-      const adminId = admins[i];
-      let playerData = {};
-
-      if (adminId.length === 17) {
-        playerData = {
-          steamID: adminId,
-          isAdmin: 1,
-        };
-      } else {
-        playerData = {
-          eosID: adminId,
-          isAdmin: 1,
-        };
-      }
-
-      const dataType = 'players';
-      const response = await patchDataInAPI(
-        dataType,
-        playerData,
-        this.options.accessToken
-      );
-      // Only log the response if it's an error
-      if (response.successStatus === 'Error') {
-        this.verbose(
-          1,
-          `Mount-Admins | ${response.successStatus} | ${response.successMessage}`
-        );
-      }
-    }
 
     // Subscribe to events
     this.server.on(`CHAT_COMMAND:mss`, this.onChatCommand);
@@ -141,10 +107,11 @@ export default class MySquadStats extends BasePlugin {
     this.server.on('PLAYER_DISCONNECTED', this.killstreakDisconnected);
     // Check for updates in GitHub
     this.checkVersion();
-    // Every minute, ping My Squad Stats
+    // Every 1 minute, ping My Squad Stats
     this.pingInterval = setInterval(this.pingMySquadStats.bind(this), 60000);
-    // Every 30 minutes, get the admins from the server and update the database
+    // Every 30 minutes, send Admins and Whitelisters to MySquadStats
     this.getAdminsInterval = setInterval(this.getAdmins.bind(this), 1800000);
+    this.getPlayersInterval = setInterval(this.getPlayers.bind(this), 60000);
   }
 
   async unmount() {
@@ -164,6 +131,7 @@ export default class MySquadStats extends BasePlugin {
     );
     clearInterval(this.pingInterval);
     clearInterval(this.getAdminsInterval);
+    clearInterval(this.getPlayersInterval);
   }
 
   async checkVersion() {
@@ -203,10 +171,9 @@ export default class MySquadStats extends BasePlugin {
       fs.writeFileSync(updateClearedFilePath, data);
     }
 
-    // If no update-cleared.json is false
     const updateCleared = JSON.parse(fs.readFileSync(updateClearedFilePath));
     if (!updateCleared.cleared) {
-      // Delete old Retry Json Files due to potential conflicting changes in the code
+      // Delete old Retry json Files due to potential conflicting changes in the code
       const retryPostFilePath = path.join(
         __DataDirname,
         '..',
@@ -229,7 +196,7 @@ export default class MySquadStats extends BasePlugin {
         fs.unlinkSync(retryPatchFilePath);
       }
 
-      // Create the update-cleared.json file
+      // Create/Update the update-cleared.json file
       fs.writeFileSync(
         updateClearedFilePath,
         JSON.stringify({ cleared: true })
@@ -271,13 +238,13 @@ export default class MySquadStats extends BasePlugin {
       );
 
       try {
-        // Your code that might throw an error
+        // Throw Error to Crash SquadJS forcing a Restart to use the new code
         throw new Error(
           `A new version of ${repo} is available. Please restart the server to apply the update.`
         );
       } catch (error) {
         console.error(error);
-        process.exit(1); // Exit the process with a "failure" code
+        process.exit(1);
       }
     } else if (currentVersion > latestVersion) {
       this.verbose(
@@ -426,173 +393,113 @@ export default class MySquadStats extends BasePlugin {
         }
       }
     }
-    this.verbose(1, `${Object.keys(admins).length} admins loaded...`);
+    this.verbose(1, `${Object.keys(admins).length} Admins/Reserve loaded...`);
 
-    let existingAdmins = {};
-    const adminFilePath = path.join(
-      __dirname,
-      '..',
-      '..',
-      'MySquadStats_Data',
-      'admins.json'
+    // Post Request to Admins API
+    const dataType = 'admins';
+    const response = await postDataToAPI(
+      dataType,
+      admins,
+      this.options.accessToken
     );
 
-    for (let adminId in admins) {
-      let admin = admins[adminId];
-
-      // Check if the admin is already in the local json file
-      // If they are, check if they have the same permissions
-      // If the permissions are different, proceed, otherwise continue
-
-      // Read the existing admins from the admins.json file
-      if (fs.existsSync(adminFilePath)) {
-        existingAdmins = JSON.parse(fs.readFileSync(adminFilePath));
-      }
-
-      let adminData = {};
-      if (fs.existsSync(adminFilePath)) {
-        adminData = JSON.parse(fs.readFileSync(adminFilePath));
-      }
-      if (adminId in adminData) {
-        const localAdmin = adminData[adminId];
-        if (JSON.stringify(localAdmin) !== JSON.stringify(admin)) {
-          // If the permissions are different, update the local json file
-          adminData[adminId] = admin;
-          fs.writeFileSync(adminFilePath, JSON.stringify(adminData));
-          this.verbose(
-            2,
-            `Updated Admin ${adminId} in local json file with new permissions`
-          );
-        } else {
-          this.verbose(
-            2,
-            `Admin ${adminId} is already in local json file with the same permissions`
-          );
-          continue;
-        }
-      }
-
-      let playerData = {};
-      // Check if the admin is a steamID or an EOS ID
-      if (adminId.length === 17) {
-        playerData = {
-          steamID: adminId,
-        };
-      } else {
-        playerData = {
-          eosID: adminId,
-        };
-      }
-
-      // Add the permissions to the playerData
-      if (admin.canseeadminchat) {
-        playerData = {
-          ...playerData,
-          isAdmin: 1,
-        };
-      } else {
-        playerData = {
-          ...playerData,
-          isAdmin: 0,
-        };
-      }
-      if (admin.reserve) {
-        playerData = {
-          ...playerData,
-          isReserve: 1,
-        };
-      } else {
-        playerData = {
-          ...playerData,
-          isReserve: 0,
-        };
-      }
-
-      // Add the discordUsername to the playerData if it exists
-      if (admin.discordUsername !== null) {
-        playerData = {
-          ...playerData,
-          discordUsername: admin.discordUsername,
-        };
-      }
-
-      const dataType = 'players';
-      const response = await patchDataInAPI(
-        dataType,
-        playerData,
-        this.options.accessToken
+    if (response.successStatus === 'Error') {
+      this.verbose(
+        1,
+        `Admins-Admins | ${response.successStatus} | ${response.successMessage}`
       );
-      // Only log the response if it's an error
-      if (response.successStatus === 'Error') {
-        this.verbose(
-          1,
-          `GetAdmins-Player | ${response.successStatus} | ${response.successMessage}`
-        );
-        continue;
-      }
+    } else {
+      this.verbose(
+        1,
+        `Admins-Admins | ${response.successStatus} | ${response.successMessage}`
+      );
+    }
+    return;
+  }
 
-      // Store admin in local json file
-      adminData[adminId] = admin;
+  async getPlayers() {
+    this.verbose(1, 'Getting Players...');
+    const players = await this.server.rcon.getListPlayers();
+    const squads = await this.server.rcon.getSquads();
 
-      const adminDirPath = path.dirname(adminFilePath);
+    // Get Match ID
+    const matchID = this.match && this.match.id ? this.match.id : null;
 
-      // Create the directory if it doesn't exist
-      if (!fs.existsSync(adminDirPath)) {
-        fs.mkdirSync(adminDirPath, { recursive: true });
-      }
+    // Initialize an object to hold teams
+    const teams = {
+      1: {
+        teamID: '1',
+        teamName: 'Team 1',
+        matchID,
+        squads: [
+          {
+            squadID: '0',
+            squadName: 'Unassigned',
+            teamID: '1',
+            isCommandSquad: false,
+            players: [],
+          },
+        ],
+      },
+      2: {
+        teamID: '2',
+        teamName: 'Team 2',
+        matchID,
+        squads: [
+          {
+            squadID: '0',
+            squadName: 'Unassigned',
+            teamID: '2',
+            isCommandSquad: false,
+            players: [],
+          },
+        ],
+      },
+    };
 
-      fs.writeFileSync(adminFilePath, JSON.stringify(adminData));
-
-      // Add a delay before processing the next admin
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Iterate over each squad
+    for (const squad of squads) {
+      // Add the squad to the team
+      teams[squad.teamID].squads.push({
+        ...squad,
+        isCommandSquad: squad.squadName === 'Command Squad',
+        players: players.filter(
+          (player) =>
+            player.squadID === squad.squadID && player.teamID === squad.teamID
+        ),
+      });
     }
 
-    // After processing all the new admins, check for removed admins
-    for (let adminId in existingAdmins) {
-      if (!(adminId in admins)) {
-        let playerData = {};
-        // Check if the admin is a steamID or an EOS ID
-        if (adminId.length === 17) {
-          playerData = {
-            steamID: adminId,
-          };
-        } else {
-          playerData = {
-            eosID: adminId,
-          };
-        }
-
-        // Add removeWhitelist to the playerData
-        playerData = {
-          ...playerData,
-          removeAdmin: 1,
-        };
-
-        // Make API request to remove the admin
-        const dataType = 'players';
-        const response = await patchDataInAPI(
-          dataType,
-          playerData,
-          this.options.accessToken
-        );
-        // Only log the response if it's an error
-        if (response.successStatus === 'Error') {
-          this.verbose(
-            1,
-            `GetAdmins-Remove | ${response.successStatus} | ${response.successMessage}`
-          );
-        }
-
-        // This admin was removed
-        this.verbose(1, `Admin ${adminId} was removed`);
-
-        // Remove the admin from the existingAdmins object
-        delete existingAdmins[adminId];
+    // Add unassigned players to the "Unassigned" squad
+    for (const player of players) {
+      if (player.squadID === null) {
+        teams[player.teamID].squads[0].players.push(player);
       }
     }
 
-    // Write the updated existingAdmins object back to the admins.json file
-    fs.writeFileSync(adminFilePath, JSON.stringify(existingAdmins));
+    // Update the size of the "Unassigned" squad
+    for (const teamID in teams) {
+      const unassignedSquad = teams[teamID].squads[0];
+      unassignedSquad.size = unassignedSquad.players.length;
+    }
+
+    // Convert the teams object to an array
+    const playersData = Object.values(teams);
+
+    // POST serversPlayers to API
+    const dataType = 'serversPlayers';
+    const response = await postDataToAPI(
+      dataType,
+      playersData,
+      this.options.accessToken
+    );
+
+    if (response.successStatus === 'Error') {
+      this.verbose(
+        1,
+        `Players-Players | ${response.successStatus} | ${response.successMessage}`
+      );
+    }
     return;
   }
 
@@ -623,7 +530,6 @@ export default class MySquadStats extends BasePlugin {
     }
 
     if (message.startsWith('link')) {
-      // !mss link 123456
       // Get the 6 digit number from the message
       const linkCode = message.split(' ')[1];
       // Check if linkCode is not the right length
@@ -722,9 +628,11 @@ export default class MySquadStats extends BasePlugin {
     if (!info.winner || !info.loser) {
       matchData = {
         endTime: info.time,
+        winningTeamID: 0,
         winningTeam: 'Draw',
         winningSubfaction: 'Draw',
         winningTickets: 0,
+        losingTeamId: 0,
         losingTeam: 'Draw',
         losingSubfaction: 'Draw',
         losingTickets: 0,
@@ -732,9 +640,11 @@ export default class MySquadStats extends BasePlugin {
     } else {
       matchData = {
         endTime: info.time,
+        winningTeamID: info.winner.team,
         winningTeam: info.winner.faction,
         winningSubfaction: info.winner.subfaction,
         winningTickets: info.winner.tickets,
+        losingTeamId: info.loser.team,
         losingTeam: info.loser.faction,
         losingSubfaction: info.loser.subfaction,
         losingTickets: info.loser.tickets,
@@ -802,7 +712,7 @@ export default class MySquadStats extends BasePlugin {
     // Post Request to create Wound in API
     const dataType = 'wounds';
     const woundData = {
-      match: this.match ? this.match.id : null,
+      match: this.match && this.match.id ? this.match.id : null,
       time: info.time,
       victim: info.victim ? info.victim.steamID : null,
       victimEosID: info.victim ? info.victim.eosID : null,
@@ -833,12 +743,11 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async onPlayerDied(info) {
-    // Killstreaks
     if (info.victim) {
       // Post Request to create Death in API
       const dataType = 'deaths';
       const deathData = {
-        match: this.match ? this.match.id : null,
+        match: this.match && this.match.id ? this.match.id : null,
         time: info.time,
         woundTime: info.woundTime,
         victim: info.victim ? info.victim.steamID : null,
@@ -874,7 +783,7 @@ export default class MySquadStats extends BasePlugin {
     // Post Request to create Revive in API
     const dataType = 'revives';
     const reviveData = {
-      match: this.match ? this.match.id : null,
+      match: this.match && this.match.id ? this.match.id : null,
       time: info.time,
       woundTime: info.woundTime,
       victim: info.victim ? info.victim.steamID : null,
@@ -1036,7 +945,7 @@ export default class MySquadStats extends BasePlugin {
       const playerData = {
         eosID: eosID,
         highestKillstreak: currentKillstreak,
-        match: this.match ? this.match.id : null,
+        match: this.match && this.match.id ? this.match.id : null,
       };
       const response = await patchDataInAPI(
         dataType,
@@ -1059,7 +968,7 @@ export default class MySquadStats extends BasePlugin {
   }
 }
 
-// Retrieve the latest version from GitHub
+// Retrieve the latest version of code from GitHub
 async function getLatestVersion(owner, repo) {
   const url = `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
   const response = await fetch(url);
@@ -1132,6 +1041,13 @@ async function retryFailedRequests(filePath, apiFunction, accessToken) {
       `${retryResponse.successStatus} | ${retryResponse.successMessage}`
     );
     if (retryResponse.successStatus === 'Success') {
+      // Remove the request from the array
+      failedRequests.splice(i, 1);
+      // Decrement i so the next iteration won't skip an item
+      i--;
+      // Write the updated failedRequests array back to the file
+      fs.writeFileSync(filePath, JSON.stringify(failedRequests));
+    } else if (retryResponse.successStatus === 'Error') {
       // Remove the request from the array
       failedRequests.splice(i, 1);
       // Decrement i so the next iteration won't skip an item
