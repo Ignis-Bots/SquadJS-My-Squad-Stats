@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.3.3';
+const currentVersion = 'v5.3.4';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -431,6 +431,7 @@ export default class MySquadStats extends BasePlugin {
         teamID: '1',
         teamName: 'Team 1',
         matchID,
+        time: new Date().toISOString(),
         squads: [
           {
             squadID: '0',
@@ -445,6 +446,7 @@ export default class MySquadStats extends BasePlugin {
         teamID: '2',
         teamName: 'Team 2',
         matchID,
+        time: new Date().toISOString(),
         squads: [
           {
             squadID: '0',
