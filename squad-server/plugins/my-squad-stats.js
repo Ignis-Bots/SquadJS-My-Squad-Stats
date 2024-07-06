@@ -419,8 +419,17 @@ export default class MySquadStats extends BasePlugin {
 
   async getPlayers() {
     this.verbose(1, 'Getting Players...');
-    const players = (await this.server.rcon.getListPlayers()) || [];
-    const squads = (await this.server.rcon.getSquads()) || [];
+    const players = await this.server.rcon.getListPlayers();
+    let squads = await this.server.rcon.getSquads();
+
+    // Ensure squads is always an array
+    if (!Array.isArray(squads)) {
+      this.verbose(
+        1,
+        'No squads found or error fetching squads, initializing as empty array.'
+      );
+      squads = [];
+    }
 
     // Get Match ID
     const matchID = this.match && this.match.id ? this.match.id : null;
