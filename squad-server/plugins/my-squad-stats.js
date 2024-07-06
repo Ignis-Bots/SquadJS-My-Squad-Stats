@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.3.2';
+const currentVersion = 'v5.3.5';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -420,7 +420,16 @@ export default class MySquadStats extends BasePlugin {
   async getPlayers() {
     this.verbose(1, 'Getting Players...');
     const players = await this.server.rcon.getListPlayers();
-    const squads = await this.server.rcon.getSquads();
+    let squads = await this.server.rcon.getSquads();
+
+    // Ensure squads is always an array
+    if (!Array.isArray(squads)) {
+      this.verbose(
+        1,
+        'No squads found or error fetching squads, initializing as empty array.'
+      );
+      squads = [];
+    }
 
     // Get Match ID
     const matchID = this.match && this.match.id ? this.match.id : null;
@@ -632,7 +641,7 @@ export default class MySquadStats extends BasePlugin {
         winningTeam: 'Draw',
         winningSubfaction: 'Draw',
         winningTickets: 0,
-        losingTeamId: 0,
+        losingTeamID: 0,
         losingTeam: 'Draw',
         losingSubfaction: 'Draw',
         losingTickets: 0,
@@ -644,7 +653,7 @@ export default class MySquadStats extends BasePlugin {
         winningTeam: info.winner.faction,
         winningSubfaction: info.winner.subfaction,
         winningTickets: info.winner.tickets,
-        losingTeamId: info.loser.team,
+        losingTeamID: info.loser.team,
         losingTeam: info.loser.faction,
         losingSubfaction: info.loser.subfaction,
         losingTickets: info.loser.tickets,
