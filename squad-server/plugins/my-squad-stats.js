@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.3.5';
+const currentVersion = 'v5.3.6';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -469,14 +469,21 @@ export default class MySquadStats extends BasePlugin {
     // Iterate over each squad
     for (const squad of squads) {
       // Add the squad to the team
-      teams[squad.teamID].squads.push({
-        ...squad,
-        isCommandSquad: squad.squadName === 'Command Squad',
-        players: players.filter(
-          (player) =>
-            player.squadID === squad.squadID && player.teamID === squad.teamID
-        ),
-      });
+      if (teams[squad.teamID]) {
+        teams[squad.teamID].squads.push({
+          ...squad,
+          isCommandSquad: squad.squadName === 'Command Squad',
+          players: players.filter(
+            (player) =>
+              player.squadID === squad.squadID && player.teamID === squad.teamID
+          ),
+        });
+      } else {
+        this.verbose(
+          1,
+          `Unknown teamID: ${squad.teamID}, squadID: ${squad.squadID}`
+        );
+      }
     }
 
     // Add unassigned players to the "Unassigned" squad
