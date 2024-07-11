@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.3.7';
+const currentVersion = 'v5.3.8';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -30,6 +30,11 @@ export default class MySquadStats extends BasePlugin {
         required: false,
         description:
           'Allow players to check their stats in-game via an AdminWarn.',
+      },
+      allowSimpleStatsCommand: {
+        required: false,
+        description:
+          'Allow players to check their stats in-game via !stats as well as !mss stats.',
       },
       usingWhitelister: {
         required: false,
@@ -95,6 +100,7 @@ export default class MySquadStats extends BasePlugin {
 
     // Subscribe to events
     this.server.on(`CHAT_COMMAND:mss`, this.onChatCommand);
+    this.server.on(`CHAT_COMMAND:stats`, this.onChatCommand);
     this.server.on('ROUND_ENDED', this.onRoundEnded);
     this.server.on('NEW_GAME', this.onNewGame);
     this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
@@ -116,6 +122,7 @@ export default class MySquadStats extends BasePlugin {
 
   async unmount() {
     this.server.removeEventListener(`CHAT_COMMAND:mss`, this.onChatCommand);
+    this.server.removeEventListener(`CHAT_COMMAND:stats`, this.onChatCommand);
     this.server.removeEventListener('ROUND_ENDED', this.onRoundEnded);
     this.server.removeEventListener('NEW_GAME', this.onNewGame);
     this.server.removeEventListener('PLAYER_CONNECTED', this.onPlayerConnected);
@@ -530,6 +537,14 @@ export default class MySquadStats extends BasePlugin {
     // Get the message
     const message = info.message;
 
+    let simpleStatsCommand = false;
+    if (
+      this.options.allowSimpleStatsCommand === true &&
+      info.raw.endsWith('!stats')
+    ) {
+      simpleStatsCommand = true;
+    }
+
     // Help Commands
     if (
       message === 'help' ||
@@ -550,6 +565,7 @@ export default class MySquadStats extends BasePlugin {
       } else {
         warningMessage += `\n!mss link "code" - Link to MySquadStats.com`;
       }
+      await this.server.rcon.warn(info.player.steamID, warningMessage);
     }
 
     if (message.startsWith('link')) {
@@ -606,7 +622,7 @@ export default class MySquadStats extends BasePlugin {
         info.player.steamID,
         `Thank you for linking your accounts.\nView your Stats at MySquadStats.com`
       );
-    } else if (message === 'stats') {
+    } else if (message === 'stats' || simpleStatsCommand === true) {
       if (this.options.allowInGameStatsCommand === false) {
         return this.server.rcon.warn(
           info.player.steamID,
