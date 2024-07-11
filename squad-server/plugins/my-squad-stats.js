@@ -535,7 +535,7 @@ export default class MySquadStats extends BasePlugin {
 
   async onChatCommand(info) {
     // Get the message
-    const message = info.message;
+    const message = info.message.toLowerCase();
 
     let simpleStatsCommand = false;
     if (
