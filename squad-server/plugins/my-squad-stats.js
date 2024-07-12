@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.3.8';
+const currentVersion = 'v5.3.9';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -540,18 +540,19 @@ export default class MySquadStats extends BasePlugin {
     let simpleStatsCommand = false;
     if (
       this.options.allowSimpleStatsCommand === true &&
-      info.raw.endsWith('!stats')
+      info.raw.toLowerCase().endsWith('!stats')
     ) {
       simpleStatsCommand = true;
     }
 
     // Help Commands
     if (
-      message === 'help' ||
-      message === 'commands' ||
-      message === 'cmds' ||
-      message === 'h' ||
-      message.length === 0
+      (message === 'help' ||
+        message === 'commands' ||
+        message === 'cmds' ||
+        message === 'h' ||
+        message.length === 0) &&
+      simpleStatsCommand === false
     ) {
       let warningMessage = `Commands:`;
       if (this.options.allowInGameStatsCommand === true) {
