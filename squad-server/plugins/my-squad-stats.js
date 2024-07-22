@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.3.9';
+const currentVersion = 'v5.3.10';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -860,6 +860,9 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async onPlayerConnected(info) {
+    if (!info.player || !info.player.steamID) {
+      return this.verbose(1, 'ERROR: Connected-Player | No SteamID');
+    }
     let playerData = {};
     if (
       this.server.a2sPlayerCount <= 50 &&
