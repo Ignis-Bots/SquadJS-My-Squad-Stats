@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.3.11';
+const currentVersion = 'v5.4.0';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -210,11 +210,27 @@ export default class MySquadStats extends BasePlugin {
       );
     }
 
-    if (
-      currentVersion.localeCompare(latestVersion, undefined, {
-        numeric: true,
-      }) < 0
-    ) {
+    function compareVersions(version1, version2) {
+      const v1Parts = version1.replace('v', '').split('.').map(Number);
+      const v2Parts = version2.replace('v', '').split('.').map(Number);
+
+      for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
+        const v1 = v1Parts[i] || 0;
+        const v2 = v2Parts[i] || 0;
+
+        if (v1 > v2) return 1;
+        if (v1 < v2) return -1;
+      }
+
+      return 0;
+    }
+
+    console.log('Current Version:', currentVersion);
+    console.log('Latest Version:', latestVersion);
+
+    const comparisonResult = compareVersions(currentVersion, latestVersion);
+
+    if (comparisonResult < 0) {
       this.verbose(1, `A new version of ${repo} is available. Updating...`);
 
       const updatedCodeUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${latestVersion}/squad-server/plugins/my-squad-stats.js`;
@@ -253,12 +269,12 @@ export default class MySquadStats extends BasePlugin {
         console.error(error);
         process.exit(1);
       }
-    } else if (currentVersion > latestVersion) {
+    } else if (comparisonResult > 0) {
       this.verbose(
         1,
         `You are running a newer version of ${repo} than the latest version.\nThis likely means you are running a pre-release version.\nYour Current Version: ${currentVersion} Latest Version: ${latestVersion}\nhttps://github.com/${owner}/${repo}/releases`
       );
-    } else if (currentVersion === latestVersion) {
+    } else if (comparisonResult === 0) {
       this.verbose(1, `You are running the latest version of ${repo}.`);
     } else {
       this.verbose(1, `Unable to check for updates in ${repo}.`);
