@@ -33,3 +33,11 @@
   - `allowInGameStatsCommand` will allow or disallow the use of the `!mss stats` Command in your Server.
   - `allowSimpleStatsCommand` will allow players to use `!stats` as well as `!mss stats` in your Server.
   - `usingWhitelister` and `whitelisterInstructions` are only to be used if you are both using JetDave's Whitelister AND have provided an Access Key to MySquadStats so that we can link your linked Whitelister Players.
+
+## Releases
+
+Releases will be given a version number with the format `v{major}.{minor}.{patch}`, e.g. `v3.1.4`. Changes to `{major}`/`{minor}`/`{patch}` will imply the following:
+
+- `{major}` - The release contains a new/updated feature that is (potentially) breaking, e.g. changes to event outputs that may cause custom plugins to break.
+- `{minor}` - The release contains a new/updated feature.
+- `{patch}` - The release contains a bug fix.
