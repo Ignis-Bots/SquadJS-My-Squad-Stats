@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.3.10';
+const currentVersion = 'v5.3.11';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -426,6 +426,11 @@ export default class MySquadStats extends BasePlugin {
 
   async getPlayers() {
     this.verbose(1, 'Getting Players...');
+    const publicSlots = this.server.publicSlots;
+    const reserveSlots = this.server.reserveSlots;
+    const publicQueue = this.server.publicQueue;
+    const reserveQueue = this.server.reserveQueue;
+
     const players = await this.server.rcon.getListPlayers();
     let squads = await this.server.rcon.getSquads();
 
@@ -447,6 +452,10 @@ export default class MySquadStats extends BasePlugin {
         teamID: '1',
         teamName: 'Team 1',
         matchID,
+        publicSlots,
+        reserveSlots,
+        publicQueue,
+        reserveQueue,
         squads: [
           {
             squadID: '0',
@@ -461,6 +470,10 @@ export default class MySquadStats extends BasePlugin {
         teamID: '2',
         teamName: 'Team 2',
         matchID,
+        publicSlots,
+        reserveSlots,
+        publicQueue,
+        reserveQueue,
         squads: [
           {
             squadID: '0',
