@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.4.0';
+const currentVersion = 'v5.4.1';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -102,6 +102,7 @@ export default class MySquadStats extends BasePlugin {
     this.server.on(`CHAT_COMMAND:mss`, this.onChatCommand);
     this.server.on(`CHAT_COMMAND:stats`, this.onChatCommand);
     this.server.on('ROUND_ENDED', this.onRoundEnded);
+    this.winningTeamTracking = {};
     this.server.on('NEW_GAME', this.onNewGame);
     this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
     this.server.on('PLAYER_WOUNDED', this.onPlayerWounded);
@@ -692,14 +693,28 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async onRoundEnded(info) {
+    // Initialize winning team tracking if not already done
+    if (!this.winningTeamTracking) {
+      this.winningTeamTracking = {
+        team1: { consecutiveWins: 0, currentTeam: 1 },
+        team2: { consecutiveWins: 0, currentTeam: 2 },
+      };
+    }
+
+    // Patch Request to create Match in API
     const dataType = 'matches';
     let matchData = {};
     if (!info.winner || !info.loser) {
+      // Reset both teams' winning streaks
+      this.winningTeamTracking.team1.consecutiveWins = 0;
+      this.winningTeamTracking.team2.consecutiveWins = 0;
+
       matchData = {
         endTime: info.time,
         winningTeamID: 0,
         winningTeam: 'Draw',
         winningSubfaction: 'Draw',
+        winningStreak: 0,
         winningTickets: 0,
         losingTeamID: 0,
         losingTeam: 'Draw',
@@ -707,11 +722,24 @@ export default class MySquadStats extends BasePlugin {
         losingTickets: 0,
       };
     } else {
+      // Update winning streaks
+      if (info.winner.team === this.winningTeamTracking.team1.currentTeam) {
+        this.winningTeamTracking.team1.consecutiveWins += 1;
+        this.winningTeamTracking.team2.consecutiveWins = 0;
+      } else {
+        this.winningTeamTracking.team2.consecutiveWins += 1;
+        this.winningTeamTracking.team1.consecutiveWins = 0;
+      }
+
       matchData = {
         endTime: info.time,
         winningTeamID: info.winner.team,
         winningTeam: info.winner.faction,
         winningSubfaction: info.winner.subfaction,
+        winningStreak:
+          info.winner.team === 1
+            ? this.winningTeamTracking.team1.consecutiveWins
+            : this.winningTeamTracking.team2.consecutiveWins,
         winningTickets: info.winner.tickets,
         losingTeamID: info.loser.team,
         losingTeam: info.loser.faction,
@@ -731,6 +759,13 @@ export default class MySquadStats extends BasePlugin {
         );
       }
     }
+
+    // Swap team identifiers for the next round
+    const temp = this.winningTeamTracking.team1.currentTeam;
+    this.winningTeamTracking.team1.currentTeam =
+      this.winningTeamTracking.team2.currentTeam;
+    this.winningTeamTracking.team2.currentTeam = temp;
+
     return;
   }
 
