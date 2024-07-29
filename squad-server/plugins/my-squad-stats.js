@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.3.5';
+const currentVersion = 'v5.4.0';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -30,6 +30,11 @@ export default class MySquadStats extends BasePlugin {
         required: false,
         description:
           'Allow players to check their stats in-game via an AdminWarn.',
+      },
+      allowSimpleStatsCommand: {
+        required: false,
+        description:
+          'Allow players to check their stats in-game via !stats as well as !mss stats.',
       },
       usingWhitelister: {
         required: false,
@@ -95,6 +100,7 @@ export default class MySquadStats extends BasePlugin {
 
     // Subscribe to events
     this.server.on(`CHAT_COMMAND:mss`, this.onChatCommand);
+    this.server.on(`CHAT_COMMAND:stats`, this.onChatCommand);
     this.server.on('ROUND_ENDED', this.onRoundEnded);
     this.server.on('NEW_GAME', this.onNewGame);
     this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
@@ -116,6 +122,7 @@ export default class MySquadStats extends BasePlugin {
 
   async unmount() {
     this.server.removeEventListener(`CHAT_COMMAND:mss`, this.onChatCommand);
+    this.server.removeEventListener(`CHAT_COMMAND:stats`, this.onChatCommand);
     this.server.removeEventListener('ROUND_ENDED', this.onRoundEnded);
     this.server.removeEventListener('NEW_GAME', this.onNewGame);
     this.server.removeEventListener('PLAYER_CONNECTED', this.onPlayerConnected);
@@ -203,11 +210,27 @@ export default class MySquadStats extends BasePlugin {
       );
     }
 
-    if (
-      currentVersion.localeCompare(latestVersion, undefined, {
-        numeric: true,
-      }) < 0
-    ) {
+    function compareVersions(version1, version2) {
+      const v1Parts = version1.replace('v', '').split('.').map(Number);
+      const v2Parts = version2.replace('v', '').split('.').map(Number);
+
+      for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
+        const v1 = v1Parts[i] || 0;
+        const v2 = v2Parts[i] || 0;
+
+        if (v1 > v2) return 1;
+        if (v1 < v2) return -1;
+      }
+
+      return 0;
+    }
+
+    console.log('Current Version:', currentVersion);
+    console.log('Latest Version:', latestVersion);
+
+    const comparisonResult = compareVersions(currentVersion, latestVersion);
+
+    if (comparisonResult < 0) {
       this.verbose(1, `A new version of ${repo} is available. Updating...`);
 
       const updatedCodeUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${latestVersion}/squad-server/plugins/my-squad-stats.js`;
@@ -246,12 +269,12 @@ export default class MySquadStats extends BasePlugin {
         console.error(error);
         process.exit(1);
       }
-    } else if (currentVersion > latestVersion) {
+    } else if (comparisonResult > 0) {
       this.verbose(
         1,
         `You are running a newer version of ${repo} than the latest version.\nThis likely means you are running a pre-release version.\nYour Current Version: ${currentVersion} Latest Version: ${latestVersion}\nhttps://github.com/${owner}/${repo}/releases`
       );
-    } else if (currentVersion === latestVersion) {
+    } else if (comparisonResult === 0) {
       this.verbose(1, `You are running the latest version of ${repo}.`);
     } else {
       this.verbose(1, `Unable to check for updates in ${repo}.`);
@@ -419,6 +442,11 @@ export default class MySquadStats extends BasePlugin {
 
   async getPlayers() {
     this.verbose(1, 'Getting Players...');
+    const publicSlots = this.server.publicSlots;
+    const reserveSlots = this.server.reserveSlots;
+    const publicQueue = this.server.publicQueue;
+    const reserveQueue = this.server.reserveQueue;
+
     const players = await this.server.rcon.getListPlayers();
     let squads = await this.server.rcon.getSquads();
 
@@ -440,6 +468,10 @@ export default class MySquadStats extends BasePlugin {
         teamID: '1',
         teamName: 'Team 1',
         matchID,
+        publicSlots,
+        reserveSlots,
+        publicQueue,
+        reserveQueue,
         squads: [
           {
             squadID: '0',
@@ -454,6 +486,10 @@ export default class MySquadStats extends BasePlugin {
         teamID: '2',
         teamName: 'Team 2',
         matchID,
+        publicSlots,
+        reserveSlots,
+        publicQueue,
+        reserveQueue,
         squads: [
           {
             squadID: '0',
@@ -469,20 +505,34 @@ export default class MySquadStats extends BasePlugin {
     // Iterate over each squad
     for (const squad of squads) {
       // Add the squad to the team
-      teams[squad.teamID].squads.push({
-        ...squad,
-        isCommandSquad: squad.squadName === 'Command Squad',
-        players: players.filter(
-          (player) =>
-            player.squadID === squad.squadID && player.teamID === squad.teamID
-        ),
-      });
+      if (teams[squad.teamID]) {
+        teams[squad.teamID].squads.push({
+          ...squad,
+          isCommandSquad: squad.squadName === 'Command Squad',
+          players: players.filter(
+            (player) =>
+              player.squadID === squad.squadID && player.teamID === squad.teamID
+          ),
+        });
+      } else {
+        this.verbose(
+          1,
+          `Unknown teamID: ${squad.teamID}, squadID: ${squad.squadID}`
+        );
+      }
     }
 
     // Add unassigned players to the "Unassigned" squad
     for (const player of players) {
-      if (player.squadID === null) {
-        teams[player.teamID].squads[0].players.push(player);
+      if (teams[player.teamID]) {
+        if (player.squadID === null) {
+          teams[player.teamID].squads[0].players.push(player);
+        }
+      } else {
+        this.verbose(
+          1,
+          `Unknown teamID: ${player.teamID}, playerID: ${player.id}`
+        );
       }
     }
 
@@ -514,15 +564,24 @@ export default class MySquadStats extends BasePlugin {
 
   async onChatCommand(info) {
     // Get the message
-    const message = info.message;
+    const message = info.message.toLowerCase();
+
+    let simpleStatsCommand = false;
+    if (
+      this.options.allowSimpleStatsCommand === true &&
+      info.raw.toLowerCase().endsWith('!stats')
+    ) {
+      simpleStatsCommand = true;
+    }
 
     // Help Commands
     if (
-      message === 'help' ||
-      message === 'commands' ||
-      message === 'cmds' ||
-      message === 'h' ||
-      message.length === 0
+      (message === 'help' ||
+        message === 'commands' ||
+        message === 'cmds' ||
+        message === 'h' ||
+        message.length === 0) &&
+      simpleStatsCommand === false
     ) {
       let warningMessage = `Commands:`;
       if (this.options.allowInGameStatsCommand === true) {
@@ -536,6 +595,7 @@ export default class MySquadStats extends BasePlugin {
       } else {
         warningMessage += `\n!mss link "code" - Link to MySquadStats.com`;
       }
+      await this.server.rcon.warn(info.player.steamID, warningMessage);
     }
 
     if (message.startsWith('link')) {
@@ -592,7 +652,7 @@ export default class MySquadStats extends BasePlugin {
         info.player.steamID,
         `Thank you for linking your accounts.\nView your Stats at MySquadStats.com`
       );
-    } else if (message === 'stats') {
+    } else if (message === 'stats' || simpleStatsCommand === true) {
       if (this.options.allowInGameStatsCommand === false) {
         return this.server.rcon.warn(
           info.player.steamID,
@@ -829,6 +889,9 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async onPlayerConnected(info) {
+    if (!info.player || !info.player.steamID) {
+      return this.verbose(1, 'ERROR: Connected-Player | No SteamID');
+    }
     let playerData = {};
     if (
       this.server.a2sPlayerCount <= 50 &&
