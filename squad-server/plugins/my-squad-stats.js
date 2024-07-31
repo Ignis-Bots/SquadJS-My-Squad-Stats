@@ -1101,7 +1101,8 @@ function handleApiError(error) {
     return {
       successStatus: 'Error',
       successMessage:
-        'No response received from the API. Please check your network connection.',
+      // Added Status Page
+        'No response received from the API. Please check network connections or https://status.mysquadstats.com/',
     };
   } else {
     // Something happened in setting up the request that triggered an Error
