@@ -615,7 +615,7 @@ export default class MySquadStats extends BasePlugin {
       if (response.successStatus === 'Error') {
         await this.server.rcon.warn(
           info.player.steamID,
-          `An error occurred while trying to link your account.\nPlease try again later.`
+          `${response.successMessage}\nPlease try again later.`
         );
         return;
       }
