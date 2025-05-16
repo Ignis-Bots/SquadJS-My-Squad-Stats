@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v5.4.2';
+const currentVersion = 'v6.0.0';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -114,7 +114,7 @@ export default class MySquadStats extends BasePlugin {
     this.server.on('PLAYER_DISCONNECTED', this.killstreakDisconnected);
     // Check for updates in GitHub
     this.checkVersion();
-    // Every 1 minute, ping My Squad Stats
+    // Every 1 minute, ping MySquadStats
     this.pingInterval = setInterval(this.pingMySquadStats.bind(this), 60000);
     // Every 30 minutes, send Admins and Whitelisters to MySquadStats
     this.getAdminsInterval = setInterval(this.getAdmins.bind(this), 1800000);
@@ -264,7 +264,7 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async pingMySquadStats() {
-    this.verbose(1, 'Pinging My Squad Stats...');
+    this.verbose(1, 'Pinging MySquadStats...');
     if (this.isProcessingFailedRequests) {
       this.verbose(1, 'Already processing failed requests...');
       return;
@@ -275,7 +275,7 @@ export default class MySquadStats extends BasePlugin {
     const dataType = 'ping';
     const response = await getDataFromAPI(dataType, this.options.accessToken);
     if (response.successMessage === 'pong') {
-      this.verbose(1, 'Pong! My Squad Stats is up and running.');
+      this.verbose(1, 'Pong! MySquadStats is up and running.');
 
       const serverPluginVersion = response.data.serverPluginVersion;
       // Check Version
@@ -578,64 +578,15 @@ export default class MySquadStats extends BasePlugin {
       ) {
         warningMessage += `\n${this.options.whitelisterInstructions}`;
       } else {
-        warningMessage += `\n!mss link "code" - Link to MySquadStats.com`;
+        warningMessage += `\nLogin to MySquadStats.com to Link`;
       }
       await this.server.rcon.warn(info.player.steamID, warningMessage);
     }
 
     if (message.startsWith('link')) {
-      // Get the 6 digit number from the message
-      const linkCode = message.split(' ')[1];
-      // Check if linkCode is not the right length
-      if (linkCode.length !== 6) {
-        await this.server.rcon.warn(
-          info.player.steamID,
-          `Please input a valid 6-digit Link Code.\nExample: !mss link 123456`
-        );
-        return;
-      }
-      // Get Player from API
-      let dataType = `players?search=${info.player.steamID}`;
-      let response = await getDataFromAPI(dataType, this.options.accessToken);
-      if (response.successStatus === 'Error') {
-        await this.server.rcon.warn(
-          info.player.steamID,
-          `An error occurred while trying to link your account.\nPlease try again later.`
-        );
-        return;
-      }
-      const player = response.data[0];
-      // If discordID is already linked, return error
-      if (player.discordID !== 'Unknown') {
-        await this.server.rcon.warn(
-          info.player.steamID,
-          `Your account is already linked.\nContact an MySquadStats.com if this is wrong.`
-        );
-        return;
-      }
-
-      // Post Request to link Player in API
-      dataType = 'playerLink';
-      const linkData = {
-        steamID: info.player.steamID,
-        code: linkCode,
-      };
-      response = await postDataToAPI(
-        dataType,
-        linkData,
-        this.options.accessToken
-      );
-      if (response.successStatus === 'Error') {
-        await this.server.rcon.warn(
-          info.player.steamID,
-          `${response.successMessage}\nPlease try again later.`
-        );
-        return;
-      }
-
       await this.server.rcon.warn(
         info.player.steamID,
-        `Thank you for linking your accounts.\nView your Stats at MySquadStats.com`
+        `Linking is now done on our website.\nLogin to MySquadStats.com to Link.`
       );
     } else if (message === 'stats' || simpleStatsCommand === true) {
       if (this.options.allowInGameStatsCommand === false) {
@@ -1087,7 +1038,7 @@ function handleApiError(error) {
     let errMsg = `${error.response.status} - ${error.response.statusText}`;
     const status = 'Error';
     if (error.response.status === 502) {
-      errMsg += ' Unable to connect to the API. My Squad Stats is likely down.';
+      errMsg += ' Unable to connect to the API. MySquadStats is likely down.';
     } else if (error.response.status === 500) {
       errMsg += ' Internal server error. Something went wrong on the server.';
     }
@@ -1115,7 +1066,7 @@ function handleApiError(error) {
 async function retryFailedRequests(filePath, apiFunction, accessToken) {
   let failedRequests = JSON.parse(fs.readFileSync(filePath));
 
-  // Send Ping to My Squad Stats with amount of failed requests
+  // Send Ping to MySquadStats with amount of failed requests
   const pingDataType = 'ping';
   const pingData = {
     filePath: filePath,
@@ -1179,7 +1130,7 @@ async function postDataToAPI(dataType, data, accessToken) {
   const __dirname = fileURLToPath(import.meta.url);
   try {
     const response = await axios.post(
-      `https://mysquadstats.com/api/${dataType}`,
+      `https://api.mysquadstats.com/${dataType}`,
       data,
       {
         params: { accessToken },
@@ -1214,7 +1165,7 @@ async function patchDataInAPI(dataType, data, accessToken) {
   const __dirname = fileURLToPath(import.meta.url);
   try {
     const response = await axios.patch(
-      `https://mysquadstats.com/api/${dataType}`,
+      `https://api.mysquadstats.com/${dataType}`,
       data,
       {
         params: { accessToken },
@@ -1248,7 +1199,7 @@ async function patchDataInAPI(dataType, data, accessToken) {
 async function getDataFromAPI(dataType, accessToken) {
   try {
     const response = await axios.get(
-      `https://mysquadstats.com/api/${dataType}`,
+      `https://api.mysquadstats.com/${dataType}`,
       {
         params: { accessToken },
       }
@@ -1262,7 +1213,7 @@ async function getDataFromAPI(dataType, accessToken) {
 async function retryPostDataToAPI(dataType, data, accessToken) {
   try {
     const response = await axios.post(
-      `https://mysquadstats.com/api/${dataType}`,
+      `https://api.mysquadstats.com/${dataType}`,
       data,
       {
         params: { accessToken },
@@ -1277,7 +1228,7 @@ async function retryPostDataToAPI(dataType, data, accessToken) {
 async function retryPatchDataInAPI(dataType, data, accessToken) {
   try {
     const response = await axios.patch(
-      `https://mysquadstats.com/api/${dataType}`,
+      `https://api.mysquadstats.com/${dataType}`,
       data,
       {
         params: { accessToken },
