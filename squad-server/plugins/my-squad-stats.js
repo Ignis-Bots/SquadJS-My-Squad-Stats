@@ -877,7 +877,7 @@ export default class MySquadStats extends BasePlugin {
     const dataType = 'players';
     playerData = {
       ...playerData,
-      eosID: info.eosID,
+      eosID: info.player.eosID,
       steamID: info.player.steamID,
       lastName: info.player.name,
       lastIP: info.ip,
@@ -961,8 +961,8 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async killstreakDisconnected(info) {
-    if (!info.eosID) return;
-    const eosID = info.eosID;
+    if (!info.player.eosID) return;
+    const eosID = info.player.eosID;
 
     // Update highestKillstreak in the SQL database
     if (this.trackedKillstreaks.hasOwnProperty(eosID)) {
