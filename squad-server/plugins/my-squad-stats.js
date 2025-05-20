@@ -81,10 +81,7 @@ export default class MySquadStats extends BasePlugin {
       serverData,
       this.options.accessToken
     );
-    this.verbose(
-      1,
-      `Mount-Server | ${response.successStatus} | ${response.successMessage}`
-    );
+    this.verbose(1, `Mount-Server | ${response.status} | ${response.message}`);
 
     // GET Request to get Match Info from API
     dataType = 'matches';
@@ -95,7 +92,7 @@ export default class MySquadStats extends BasePlugin {
     this.match = matchResponse.match;
     this.verbose(
       1,
-      `Mount-Match | ${matchResponse.successStatus} | ${matchResponse.successMessage}`
+      `Mount-Match | ${matchResponse.status} | ${matchResponse.message}`
     );
 
     // Subscribe to events
@@ -274,7 +271,7 @@ export default class MySquadStats extends BasePlugin {
     const __dirname = fileURLToPath(import.meta.url);
     const dataType = 'ping';
     const response = await getDataFromAPI(dataType, this.options.accessToken);
-    if (response.successMessage === 'pong') {
+    if (response.message === 'pong') {
       this.verbose(1, 'Pong! MySquadStats is up and running.');
 
       const serverPluginVersion = response.data.serverPluginVersion;
@@ -411,15 +408,15 @@ export default class MySquadStats extends BasePlugin {
       this.options.accessToken
     );
 
-    if (response.successStatus === 'Error') {
+    if (response.status === 'Error') {
       this.verbose(
         1,
-        `Admins-Admins | ${response.successStatus} | ${response.successMessage}`
+        `Admins-Admins | ${response.status} | ${response.message}`
       );
     } else {
       this.verbose(
         1,
-        `Admins-Admins | ${response.successStatus} | ${response.successMessage}`
+        `Admins-Admins | ${response.status} | ${response.message}`
       );
     }
     return;
@@ -538,10 +535,10 @@ export default class MySquadStats extends BasePlugin {
       this.options.accessToken
     );
 
-    if (response.successStatus === 'Error') {
+    if (response.status === 'Error') {
       this.verbose(
         1,
-        `Players-Players | ${response.successStatus} | ${response.successMessage}`
+        `Players-Players | ${response.status} | ${response.message}`
       );
     }
     return;
@@ -687,10 +684,10 @@ export default class MySquadStats extends BasePlugin {
         matchData,
         this.options.accessToken
       );
-      if (response.successStatus === 'Error') {
+      if (response.status === 'Error') {
         this.verbose(
           1,
-          `RoundEnded-Match | ${response.successStatus} | ${response.successMessage}`
+          `RoundEnded-Match | ${response.status} | ${response.message}`
         );
       }
     }
@@ -718,7 +715,7 @@ export default class MySquadStats extends BasePlugin {
     );
     this.verbose(
       1,
-      `NewGame-Server | ${serverResponse.successStatus} | ${serverResponse.successMessage}`
+      `NewGame-Server | ${serverResponse.status} | ${serverResponse.message}`
     );
 
     // Post Request to create new Match in API
@@ -738,10 +735,10 @@ export default class MySquadStats extends BasePlugin {
       this.options.accessToken
     );
     this.match = matchResponse.match;
-    if (matchResponse.successStatus === 'Error') {
+    if (matchResponse.status === 'Error') {
       this.verbose(
         1,
-        `NewGame-Post-Match${matchResponse.successStatus} | ${matchResponse.successMessage}`
+        `NewGame-Post-Match${matchResponse.status} | ${matchResponse.message}`
       );
     }
     return;
@@ -772,10 +769,10 @@ export default class MySquadStats extends BasePlugin {
       woundData,
       this.options.accessToken
     );
-    if (response.successStatus === 'Error') {
+    if (response.status === 'Error') {
       this.verbose(
         1,
-        `Wounds-Wound | ${response.successStatus} | ${response.successMessage}`
+        `Wounds-Wound | ${response.status} | ${response.message}`
       );
     }
     return;
@@ -808,10 +805,10 @@ export default class MySquadStats extends BasePlugin {
         deathData,
         this.options.accessToken
       );
-      if (response.successStatus === 'Error') {
+      if (response.status === 'Error') {
         this.verbose(
           1,
-          `Died-Death | ${response.successStatus} | ${response.successMessage}`
+          `Died-Death | ${response.status} | ${response.message}`
         );
       }
     }
@@ -849,10 +846,10 @@ export default class MySquadStats extends BasePlugin {
       reviveData,
       this.options.accessToken
     );
-    if (response.successStatus === 'Error') {
+    if (response.status === 'Error') {
       this.verbose(
         1,
-        `Revives-Revive | ${response.successStatus} | ${response.successMessage}`
+        `Revives-Revive | ${response.status} | ${response.message}`
       );
     }
     return;
@@ -887,10 +884,10 @@ export default class MySquadStats extends BasePlugin {
       playerData,
       this.options.accessToken
     );
-    if (response.successStatus === 'Error') {
+    if (response.status === 'Error') {
       this.verbose(
         1,
-        `Connected-Player | ${response.successStatus} | ${response.successMessage}`
+        `Connected-Player | ${response.status} | ${response.message}`
       );
     }
     return;
@@ -994,10 +991,10 @@ export default class MySquadStats extends BasePlugin {
         playerData,
         this.options.accessToken
       );
-      if (response.successStatus === 'Error') {
+      if (response.status === 'Error') {
         this.verbose(
           1,
-          `Error updating highestKillstreak in database for ${eosID}: ${response.successMessage}`
+          `Error updating highestKillstreak in database for ${eosID}: ${response.message}`
         );
       }
     } catch (error) {
@@ -1043,22 +1040,22 @@ function handleApiError(error) {
       errMsg += ' Internal server error. Something went wrong on the server.';
     }
     return {
-      successStatus: status,
-      successMessage: errMsg,
+      status: status,
+      message: errMsg,
     };
   } else if (error.request) {
     // The request was made but no response was received
     return {
-      successStatus: 'Error',
-      successMessage:
+      status: 'Error',
+      message:
         // Added Status Page
         'No response received from the API. Please check network connections or https://status.mysquadstats.com/.',
     };
   } else {
     // Something happened in setting up the request that triggered an Error
     return {
-      successStatus: 'Error',
-      successMessage: `Error: ${error.message}`,
+      status: 'Error',
+      message: `Error: ${error.message}`,
     };
   }
 }
@@ -1074,7 +1071,7 @@ async function retryFailedRequests(filePath, apiFunction, accessToken) {
   };
   const pingResponse = await postDataToAPI(pingDataType, pingData, accessToken);
   console.log(
-    `Ping-MySquadStats | ${pingResponse.successStatus} | ${pingResponse.successMessage}`
+    `Ping-MySquadStats | ${pingResponse.status} | ${pingResponse.message}`
   );
 
   // Sort the array so that match requests come first
@@ -1095,17 +1092,15 @@ async function retryFailedRequests(filePath, apiFunction, accessToken) {
       request.data,
       accessToken
     );
-    console.log(
-      `${retryResponse.successStatus} | ${retryResponse.successMessage}`
-    );
-    if (retryResponse.successStatus === 'Success') {
+    console.log(`${retryResponse.status} | ${retryResponse.message}`);
+    if (retryResponse.status === 'Success') {
       // Remove the request from the array
       failedRequests.splice(i, 1);
       // Decrement i so the next iteration won't skip an item
       i--;
       // Write the updated failedRequests array back to the file
       fs.writeFileSync(filePath, JSON.stringify(failedRequests));
-    } else if (retryResponse.successStatus === 'Error') {
+    } else if (retryResponse.status === 'Error') {
       // Remove the request from the array
       failedRequests.splice(i, 1);
       // Decrement i so the next iteration won't skip an item
