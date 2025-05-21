@@ -36,15 +36,6 @@ export default class MySquadStats extends BasePlugin {
         description:
           'Allow players to check their stats in-game via !stats as well as !mss stats.',
       },
-      usingWhitelister: {
-        required: false,
-        description:
-          "Set to true if you are using JetDave's Whitelister Plugin.",
-      },
-      whitelisterInstructions: {
-        required: false,
-        description: 'Instructions for linking with your Whitelister Plugin.',
-      },
     };
   }
 
@@ -567,15 +558,9 @@ export default class MySquadStats extends BasePlugin {
     ) {
       let warningMessage = `Commands:`;
       if (this.options.allowInGameStatsCommand === true) {
-        warningMessage += `\n!mss stats - Check your stats`;
-      }
-      if (
-        this.options.usingWhitelister === true &&
-        this.options.whitelisterInstructions
-      ) {
-        warningMessage += `\n${this.options.whitelisterInstructions}`;
+        warningMessage += `\n!mss stats - Check your stats\nLogin to MySquadStats.com to Link`;
       } else {
-        warningMessage += `\nLogin to MySquadStats.com to Link`;
+        warningMessage += `\n!mss stats - Check your stats\nThis Server has disabled the in-game stats command.\nCheck your stats at MySquadStats.com`;
       }
       await this.server.rcon.warn(info.player.steamID, warningMessage);
     }

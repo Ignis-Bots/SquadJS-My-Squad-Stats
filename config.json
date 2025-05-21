@@ -10,7 +10,5 @@
   "enabled": true,
   "accessToken": "YOUR_ACCESS_TOKEN",
   "allowInGameStatsCommand": true,
-  "allowSimpleStatsCommand": true,
-  "usingWhitelister": false,
-  "whitelisterInstructions": "Example: Visit Unnamed Discord for Linking"
+  "allowSimpleStatsCommand": true
 }
