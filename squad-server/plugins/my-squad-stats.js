@@ -579,7 +579,7 @@ export default class MySquadStats extends BasePlugin {
       }
 
       // Get InGameStats from API
-      const dataType = `inGameStats?search=${info.player.steamID}&dlc=${this.match.dlc}`;
+      const dataType = `inGameStats?search=${info.player.steamID}&dlc=${this.match.dlc}&layerClassname=${this.match.layerClassname}`;
       const statsResponse = await getDataFromAPI(
         dataType,
         this.options.accessToken
