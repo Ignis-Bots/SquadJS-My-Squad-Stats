@@ -50,6 +50,7 @@ export default class MySquadStats extends BasePlugin {
     this.onPlayerDied = this.onPlayerDied.bind(this);
     this.onPlayerRevived = this.onPlayerRevived.bind(this);
     this.isProcessingFailedRequests = false;
+    this.connectedPlayers = {};
     // Killstreaks
     this.trackedKillstreaks = {};
     this.killstreakWounded = this.killstreakWounded.bind(this);
@@ -85,6 +86,37 @@ export default class MySquadStats extends BasePlugin {
       1,
       `Mount-Match | ${matchResponse.status} | ${matchResponse.message}`
     );
+
+    // Get currently connected players
+    const players = await this.server.rcon.getListPlayers();
+    // For each player, get their MSS ID
+    for (const player of players) {
+      if (!player.steamID) continue;
+      // Patch Request to create Player in API
+      const dataType = 'players';
+      const playerData = {
+        eosID: player.eosID,
+        steamID: player.steamID,
+        lastName: player.name,
+        lastIP: player.ip,
+      };
+      const playerResponse = await patchDataInAPI(
+        dataType,
+        playerData,
+        this.options.accessToken
+      );
+      if (playerResponse.status === 'Error') {
+        this.verbose(
+          1,
+          `Mount-Player | ${playerResponse.status} | ${playerResponse.message}`
+        );
+      } else if (playerResponse.status === 'Success') {
+        // Add to connected Players
+        this.connectedPlayers[player.steamID] = {
+          mssID: playerResponse.data.mssID,
+        };
+      }
+    }
 
     // Subscribe to events
     this.server.on(`CHAT_COMMAND:mss`, this.onChatCommand);
@@ -730,17 +762,29 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async onPlayerWounded(info) {
+    // Get mssID from connectedPlayers
+    let attackerMSSID = null;
+    let victimMSSID = null;
+    if (info.victim && info.victim.steamID) {
+      attackerMSSID = await this.getPlayerMSSID(info.victim.steamID);
+    }
+    if (info.attacker && info.attacker.steamID) {
+      victimMSSID = await this.getPlayerMSSID(info.attacker.steamID);
+    }
+
     // Post Request to create Wound in API
     const dataType = 'wounds';
     const woundData = {
       match: this.match && this.match.id ? this.match.id : null,
       time: info.time,
       victim: info.victim ? info.victim.steamID : null,
+      victimMSSID: victimMSSID,
       victimEosID: info.victim ? info.victim.eosID : null,
       victimName: info.victim ? info.victim.name : null,
       victimTeamID: info.victim ? info.victim.teamID : null,
       victimSquadID: info.victim ? info.victim.squadID : null,
       attacker: info.attacker ? info.attacker.steamID : null,
+      attackerMSSID: attackerMSSID,
       attackerEosID: info.attacker ? info.attacker.eosID : null,
       attackerName: info.attacker ? info.attacker.name : null,
       attackerTeamID: info.attacker ? info.attacker.teamID : null,
@@ -764,6 +808,16 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async onPlayerDied(info) {
+    // Get mssID from connectedPlayers
+    let attackerMSSID = null;
+    let victimMSSID = null;
+    if (info.victim && info.victim.steamID) {
+      attackerMSSID = await this.getPlayerMSSID(info.victim.steamID);
+    }
+    if (info.attacker && info.attacker.steamID) {
+      victimMSSID = await this.getPlayerMSSID(info.attacker.steamID);
+    }
+
     if (info.victim) {
       // Post Request to create Death in API
       const dataType = 'deaths';
@@ -772,11 +826,13 @@ export default class MySquadStats extends BasePlugin {
         time: info.time,
         woundTime: info.woundTime,
         victim: info.victim ? info.victim.steamID : null,
+        victimMSSID: victimMSSID,
         victimEosID: info.victim ? info.victim.eosID : null,
         victimName: info.victim ? info.victim.name : null,
         victimTeamID: info.victim ? info.victim.teamID : null,
         victimSquadID: info.victim ? info.victim.squadID : null,
         attacker: info.attacker ? info.attacker.steamID : null,
+        attackerMSSID: attackerMSSID,
         attackerEosID: info.attacker ? info.attacker.eosID : null,
         attackerName: info.attacker ? info.attacker.name : null,
         attackerTeamID: info.attacker ? info.attacker.teamID : null,
@@ -801,6 +857,20 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async onPlayerRevived(info) {
+    // Get mssID from connectedPlayers
+    let reviverMSSID = null;
+    let attackerMSSID = null;
+    let victimMSSID = null;
+    if (info.reviver && info.reviver.steamID) {
+      reviverMSSID = await this.getPlayerMSSID(info.reviver.steamID);
+    }
+    if (info.attacker && info.attacker.steamID) {
+      attackerMSSID = await this.getPlayerMSSID(info.attacker.steamID);
+    }
+    if (info.victim && info.victim.steamID) {
+      victimMSSID = await this.getPlayerMSSID(info.victim.steamID);
+    }
+
     // Post Request to create Revive in API
     const dataType = 'revives';
     const reviveData = {
@@ -808,11 +878,13 @@ export default class MySquadStats extends BasePlugin {
       time: info.time,
       woundTime: info.woundTime,
       victim: info.victim ? info.victim.steamID : null,
+      victimMSSID: victimMSSID,
       victimEosID: info.victim ? info.victim.eosID : null,
       victimName: info.victim ? info.victim.name : null,
       victimTeamID: info.victim ? info.victim.teamID : null,
       victimSquadID: info.victim ? info.victim.squadID : null,
       attacker: info.attacker ? info.attacker.steamID : null,
+      attackerMSSID: attackerMSSID,
       attackerEosID: info.attacker ? info.attacker.eosID : null,
       attackerName: info.attacker ? info.attacker.name : null,
       attackerTeamID: info.attacker ? info.attacker.teamID : null,
@@ -821,6 +893,7 @@ export default class MySquadStats extends BasePlugin {
       weapon: info.weapon,
       teamkill: info.teamkill,
       reviver: info.reviver ? info.reviver.steamID : null,
+      reviverMSSID: reviverMSSID,
       reviverEosID: info.reviver ? info.reviver.eosID : null,
       reviverName: info.reviver ? info.reviver.name : null,
       reviverTeamID: info.reviver ? info.reviver.teamID : null,
@@ -874,6 +947,11 @@ export default class MySquadStats extends BasePlugin {
         1,
         `Connected-Player | ${response.status} | ${response.message}`
       );
+    } else if (response.status === 'Success') {
+      // Add to connected Players
+      this.connectedPlayers[info.player.steamID] = {
+        mssID: response.data.mssID,
+      };
     }
     return;
   }
@@ -884,16 +962,16 @@ export default class MySquadStats extends BasePlugin {
     if (info.teamkill === true) return;
 
     // Get the attacker's Steam ID
-    const eosID = info.attacker.eosID;
+    const steamID = info.attacker.steamID;
 
     // Check if this is the first time the attacker has made a killstreak
-    if (!this.trackedKillstreaks.hasOwnProperty(eosID)) {
+    if (!this.trackedKillstreaks.hasOwnProperty(steamID)) {
       // Set the player's initial killstreak to 0
-      this.trackedKillstreaks[eosID] = 0;
+      this.trackedKillstreaks[steamID] = 0;
     }
 
     // Increment the player's kill streak by 1
-    this.trackedKillstreaks[eosID] += 1;
+    this.trackedKillstreaks[steamID] += 1;
   }
 
   async killstreakDied(info) {
@@ -916,24 +994,24 @@ export default class MySquadStats extends BasePlugin {
       // Call the onWound function with the info object
       this.killstreakWounded(info);
     }
-    const eosID = info.victim.eosID;
+    const steamID = info.victim.steamID;
     // Update highestKillstreak in the SQL database and get the new highestKillstreak
-    await this.updateHighestKillstreak(eosID);
+    await this.updateHighestKillstreak(steamID);
 
-    if (this.trackedKillstreaks.hasOwnProperty(eosID)) {
-      delete this.trackedKillstreaks[eosID];
+    if (this.trackedKillstreaks.hasOwnProperty(steamID)) {
+      delete this.trackedKillstreaks[steamID];
     }
   }
 
   async killstreakNewGame(info) {
     // Get an array of all the Steam IDs in the trackedKillstreaks object
-    const eosIDs = Object.keys(this.trackedKillstreaks);
+    const steamIDs = Object.keys(this.trackedKillstreaks);
 
     // Loop through the array
-    for (const eosID of eosIDs) {
-      if (this.trackedKillstreaks[eosID] > 0) {
+    for (const steamID of steamIDs) {
+      if (this.trackedKillstreaks[steamID] > 0) {
         // Update highestKillstreak in the SQL database
-        await this.updateHighestKillstreak(eosID);
+        await this.updateHighestKillstreak(steamID);
       }
 
       // Remove the player from the trackedKillstreaks object
@@ -943,31 +1021,39 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async killstreakDisconnected(info) {
-    if (!info.player.eosID) return;
-    const eosID = info.player.eosID;
+    if (!info.player.steamID) return;
+    const steamID = info.player.steamID;
 
     // Update highestKillstreak in the SQL database
-    if (this.trackedKillstreaks.hasOwnProperty(eosID)) {
-      if (this.trackedKillstreaks[eosID] > 0) {
-        await this.updateHighestKillstreak(eosID);
+    if (this.trackedKillstreaks.hasOwnProperty(steamID)) {
+      if (this.trackedKillstreaks[steamID] > 0) {
+        await this.updateHighestKillstreak(steamID);
       }
     }
 
-    delete this.trackedKillstreaks[eosID];
+    delete this.trackedKillstreaks[steamID];
+
+    // Remove from connectedPlayers
+    if (this.connectedPlayers.hasOwnProperty(info.player.steamID)) {
+      delete this.connectedPlayers[info.player.steamID];
+    }
   }
 
-  async updateHighestKillstreak(eosID) {
+  async updateHighestKillstreak(steamID) {
     // Get the player's current killstreak from the trackedKillstreaks object
-    const currentKillstreak = this.trackedKillstreaks[eosID];
+    const currentKillstreak = this.trackedKillstreaks[steamID];
 
     // Return is the player's current killstreak is 0
     if (!currentKillstreak || currentKillstreak === 0) return;
 
+    // Get mssID from connectedPlayers
+    const mssID = await this.getPlayerMSSID(steamID);
     try {
       // Patch Request to update highestKillstreak in API
       const dataType = 'playerKillstreaks';
       const playerData = {
-        eosID: eosID,
+        steamID: steamID,
+        mssID: mssID,
         highestKillstreak: currentKillstreak,
         match: this.match && this.match.id ? this.match.id : null,
       };
@@ -979,16 +1065,24 @@ export default class MySquadStats extends BasePlugin {
       if (response.status === 'Error') {
         this.verbose(
           1,
-          `Error updating highestKillstreak in database for ${eosID}: ${response.message}`
+          `Error updating highestKillstreak in database for ${steamID}: ${response.message}`
         );
       }
     } catch (error) {
       this.verbose(
         1,
-        `Error updating highestKillstreak in database for ${eosID}: ${error}`
+        `Error updating highestKillstreak in database for ${steamID}: ${error}`
       );
     }
     return;
+  }
+
+  async getPlayerMSSID(steamID) {
+    if (this.connectedPlayers.hasOwnProperty(steamID)) {
+      return this.connectedPlayers[steamID].mssID;
+    } else {
+      return null;
+    }
   }
 }
 
