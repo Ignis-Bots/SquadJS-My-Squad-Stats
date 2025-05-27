@@ -511,13 +511,24 @@ export default class MySquadStats extends BasePlugin {
     for (const squad of squads) {
       // Add the squad to the team
       if (teams[squad.teamID]) {
+        // Build players array with mssID for each player in the squad
+        const squadPlayers = [];
+        for (const player of players) {
+          if (
+            player.squadID === squad.squadID &&
+            player.teamID === squad.teamID
+          ) {
+            const playerMSSID = await this.getPlayerMSSID(player.steamID);
+            squadPlayers.push({
+              ...player,
+              mssID: playerMSSID,
+            });
+          }
+        }
         teams[squad.teamID].squads.push({
           ...squad,
           isCommandSquad: squad.squadName === 'Command Squad',
-          players: players.filter(
-            (player) =>
-              player.squadID === squad.squadID && player.teamID === squad.teamID
-          ),
+          players: squadPlayers,
         });
       } else {
         this.verbose(
@@ -531,6 +542,8 @@ export default class MySquadStats extends BasePlugin {
     for (const player of players) {
       if (teams[player.teamID]) {
         if (player.squadID === null) {
+          const playerMSSID = await this.getPlayerMSSID(player.steamID);
+          player.mssID = playerMSSID;
           teams[player.teamID].squads[0].players.push(player);
         }
       } else {
