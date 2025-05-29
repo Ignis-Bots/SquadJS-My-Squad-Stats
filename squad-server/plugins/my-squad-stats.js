@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v6.0.0';
+const currentVersion = 'v6.0.1';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -779,10 +779,10 @@ export default class MySquadStats extends BasePlugin {
     let attackerMSSID = null;
     let victimMSSID = null;
     if (info.victim && info.victim.steamID) {
-      attackerMSSID = await this.getPlayerMSSID(info.victim.steamID);
+      victimMSSID = await this.getPlayerMSSID(info.victim.steamID);
     }
     if (info.attacker && info.attacker.steamID) {
-      victimMSSID = await this.getPlayerMSSID(info.attacker.steamID);
+      attackerMSSID = await this.getPlayerMSSID(info.attacker.steamID);
     }
 
     // Post Request to create Wound in API
