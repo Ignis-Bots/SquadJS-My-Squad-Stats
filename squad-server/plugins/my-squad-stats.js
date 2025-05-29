@@ -825,10 +825,10 @@ export default class MySquadStats extends BasePlugin {
     let attackerMSSID = null;
     let victimMSSID = null;
     if (info.victim && info.victim.steamID) {
-      attackerMSSID = await this.getPlayerMSSID(info.victim.steamID);
+      victimMSSID = await this.getPlayerMSSID(info.victim.steamID);
     }
     if (info.attacker && info.attacker.steamID) {
-      victimMSSID = await this.getPlayerMSSID(info.attacker.steamID);
+      attackerMSSID = await this.getPlayerMSSID(info.attacker.steamID);
     }
 
     if (info.victim) {
