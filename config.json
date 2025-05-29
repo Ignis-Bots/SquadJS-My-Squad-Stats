@@ -1,16 +1,14 @@
 // Add this in your Plugins Section
-// TOKENS are Provided by Ignis upon Signup to My Squad Stats
+// TOKENS are Provided by Ignis upon Signup to MySquadStats
 
 // Check the ReadMe for Information on each setting
 
-// Whitelister is for those using JetDave's Whitelister Tool - Get with Ignis to make sure it's setup on MySquadStats' end
+// Whitelister is for those using JetDave's Whitelister Tool - Get with Ignis to make sure it's setup on MySquadStats' end - otherwise, set to false
 
 {
   "plugin": "MySquadStats",
   "enabled": true,
   "accessToken": "YOUR_ACCESS_TOKEN",
   "allowInGameStatsCommand": true,
-  "allowSimpleStatsCommand": true,
-  "usingWhitelister": false,
-  "whitelisterInstructions": "Example: Visit Unnamed Discord for Linking"
+  "allowSimpleStatsCommand": true
 }

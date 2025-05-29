@@ -1,4 +1,4 @@
-# Backbone SquadJS Plugin for [My Squad Stats](https://mysquadstats.com)
+# Backbone SquadJS Plugin for [MySquadStats](https://mysquadstats.com)
 
 <div align="center">
 
@@ -19,7 +19,7 @@
 
 ## What it do?
 
-- This sends your Players Statistics, such as Kills, Deaths, Revives, etc. to My Squad Stats so that players can see a better totality of their Stats across multiple Servers.
+- This sends your Players Statistics, such as Kills, Deaths, Revives, etc. to MySquadStats so that players can see a better totality of their Stats across multiple Servers.
 
 ## Pre-requesites
 
