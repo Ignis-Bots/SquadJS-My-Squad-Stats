@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v6.0.1';
+const currentVersion = 'v6.0.2';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -1028,7 +1028,7 @@ export default class MySquadStats extends BasePlugin {
       }
 
       // Remove the player from the trackedKillstreaks object
-      delete this.trackedKillstreaks[eosID];
+      delete this.trackedKillstreaks[steamID];
     }
     return;
   }
