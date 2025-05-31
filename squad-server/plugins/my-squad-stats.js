@@ -1031,7 +1031,7 @@ export default class MySquadStats extends BasePlugin {
       }
 
       // Remove the player from the trackedKillstreaks object
-      delete this.trackedKillstreaks[eosID];
+      delete this.trackedKillstreaks[steamID];
     }
     return;
   }
