@@ -9,6 +9,7 @@ import fs from 'fs';
 import BasePlugin from './base-plugin.js';
 
 const currentVersion = 'v6.0.2';
+let updated = false;
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -237,7 +238,7 @@ export default class MySquadStats extends BasePlugin {
       latestVersion
     );
 
-    if (comparisonResult < 0) {
+    if (comparisonResult < 0 && !updated) {
       this.verbose(1, `A new version of ${repo} is available. Updating...`);
 
       const updatedCodeUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${latestVersion}/squad-server/plugins/my-squad-stats.js`;
@@ -266,6 +267,7 @@ export default class MySquadStats extends BasePlugin {
         JSON.stringify({ cleared: false })
       );
 
+      updated = true;
       this.verbose(
         1,
         `Successfully updated ${repo} to version ${latestVersion}. Please restart the Node.js process to apply the changes.`
