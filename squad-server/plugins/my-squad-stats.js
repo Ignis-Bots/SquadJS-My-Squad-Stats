@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v6.0.1';
+const currentVersion = 'v6.0.2';
 
 export default class MySquadStats extends BasePlugin {
   static get description() {
@@ -655,12 +655,15 @@ export default class MySquadStats extends BasePlugin {
   }
 
   async onRoundEnded(info) {
-    // Initialize winning team tracking if not already done
+    // Ensure winningTeamTracking and its teams are always initialized
     if (!this.winningTeamTracking) {
-      this.winningTeamTracking = {
-        team1: { consecutiveWins: 0, currentTeam: 1 },
-        team2: { consecutiveWins: 0, currentTeam: 2 },
-      };
+      this.winningTeamTracking = {};
+    }
+    if (!this.winningTeamTracking.team1) {
+      this.winningTeamTracking.team1 = { consecutiveWins: 0, currentTeam: 1 };
+    }
+    if (!this.winningTeamTracking.team2) {
+      this.winningTeamTracking.team2 = { consecutiveWins: 0, currentTeam: 2 };
     }
 
     // Patch Request to create Match in API
@@ -1028,13 +1031,15 @@ export default class MySquadStats extends BasePlugin {
       }
 
       // Remove the player from the trackedKillstreaks object
-      delete this.trackedKillstreaks[eosID];
+      delete this.trackedKillstreaks[steamID];
     }
     return;
   }
 
   async killstreakDisconnected(info) {
-    if (!info.player.steamID) return;
+    if (!info?.player?.steamID) {
+      return;
+    }
     const steamID = info.player.steamID;
 
     // Update highestKillstreak in the SQL database
