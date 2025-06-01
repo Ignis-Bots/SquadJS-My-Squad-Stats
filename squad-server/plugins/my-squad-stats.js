@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v6.0.2';
+const currentVersion = 'v6.0.3';
 let updated = false;
 
 export default class MySquadStats extends BasePlugin {
@@ -668,11 +668,11 @@ export default class MySquadStats extends BasePlugin {
       this.winningTeamTracking.team2 = { consecutiveWins: 0, currentTeam: 2 };
     }
 
-    // Patch Request to create Match in API
     const dataType = 'matches';
     let matchData = {};
+
     if (!info.winner || !info.loser) {
-      // Reset both teams' winning streaks
+      // Reset both teams' winning streaks on draw
       this.winningTeamTracking.team1.consecutiveWins = 0;
       this.winningTeamTracking.team2.consecutiveWins = 0;
 
@@ -689,24 +689,26 @@ export default class MySquadStats extends BasePlugin {
         losingTickets: 0,
       };
     } else {
-      // Update winning streaks
+      // Determine which team object (team1 or team2) won based on current team mapping
+      let winningGroup, losingGroup;
       if (info.winner.team === this.winningTeamTracking.team1.currentTeam) {
-        this.winningTeamTracking.team1.consecutiveWins += 1;
-        this.winningTeamTracking.team2.consecutiveWins = 0;
+        winningGroup = this.winningTeamTracking.team1;
+        losingGroup = this.winningTeamTracking.team2;
       } else {
-        this.winningTeamTracking.team2.consecutiveWins += 1;
-        this.winningTeamTracking.team1.consecutiveWins = 0;
+        winningGroup = this.winningTeamTracking.team2;
+        losingGroup = this.winningTeamTracking.team1;
       }
+
+      // Update streaks
+      winningGroup.consecutiveWins += 1;
+      losingGroup.consecutiveWins = 0;
 
       matchData = {
         endTime: info.time,
         winningTeamID: info.winner.team,
         winningTeam: info.winner.faction,
         winningSubfaction: info.winner.subfaction,
-        winningStreak:
-          info.winner.team === 1
-            ? this.winningTeamTracking.team1.consecutiveWins
-            : this.winningTeamTracking.team2.consecutiveWins,
+        winningStreak: winningGroup.consecutiveWins,
         winningTickets: info.winner.tickets,
         losingTeamID: info.loser.team,
         losingTeam: info.loser.faction,
@@ -727,11 +729,17 @@ export default class MySquadStats extends BasePlugin {
       }
     }
 
-    // Swap team identifiers for the next round
-    const temp = this.winningTeamTracking.team1.currentTeam;
+    // Swap team identifiers for the next round (players switch sides)
+    const tempTeam = this.winningTeamTracking.team1.currentTeam;
     this.winningTeamTracking.team1.currentTeam =
       this.winningTeamTracking.team2.currentTeam;
-    this.winningTeamTracking.team2.currentTeam = temp;
+    this.winningTeamTracking.team2.currentTeam = tempTeam;
+
+    // Swap streaks to follow the player groups
+    const tempWins = this.winningTeamTracking.team1.consecutiveWins;
+    this.winningTeamTracking.team1.consecutiveWins =
+      this.winningTeamTracking.team2.consecutiveWins;
+    this.winningTeamTracking.team2.consecutiveWins = tempWins;
 
     return;
   }
