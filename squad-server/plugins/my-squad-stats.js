@@ -8,7 +8,7 @@ import fs from 'fs';
 
 import BasePlugin from './base-plugin.js';
 
-const currentVersion = 'v6.0.2';
+const currentVersion = 'v6.0.3';
 let updated = false;
 
 export default class MySquadStats extends BasePlugin {
@@ -1148,7 +1148,8 @@ function handleApiError(error) {
       status: 'Error',
       message:
         // Added Status Page
-        'No response received from the API. Please check network connections or https://status.mysquadstats.com/.',
+        //  'No response received from the API. Please check network connections or https://status.mysquadstats.com/.',
+        'No response received from the API. Please check network connections or reach out in the Squad Stats Discord if this lasts more than 15 minutes.',
     };
   } else {
     // Something happened in setting up the request that triggered an Error
