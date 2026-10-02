@@ -1228,6 +1228,24 @@ async function retryFailedRequests(filePath, apiFunction, accessToken) {
   return completed;
 }
 
+// Connection errors where the request never reached the API, so sending it
+// again later cannot create a duplicate.
+const UNREACHABLE_ERROR_CODES = [
+  'ECONNREFUSED',
+  'ENOTFOUND',
+  'EAI_AGAIN',
+  'ETIMEDOUT',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+];
+
+function shouldRetryLater(error) {
+  if (error.response) {
+    return error.response.status === 502;
+  }
+  return UNREACHABLE_ERROR_CODES.includes(error.code);
+}
+
 async function postDataToAPI(dataType, data, accessToken) {
   const __dirname = fileURLToPath(import.meta.url);
   try {
@@ -1240,7 +1258,7 @@ async function postDataToAPI(dataType, data, accessToken) {
     );
     return response.data;
   } catch (error) {
-    if (error.response && error.response.status === 502) {
+    if (shouldRetryLater(error)) {
       // Save the request details to a local file for later retry
       const requestDetails = {
         dataType: `${dataType}`,
@@ -1275,7 +1293,7 @@ async function patchDataInAPI(dataType, data, accessToken) {
     );
     return response.data;
   } catch (error) {
-    if (error.response && error.response.status === 502) {
+    if (shouldRetryLater(error)) {
       // Save the request details to a local file for later retry
       const requestDetails = {
         dataType: `${dataType}`,
