@@ -233,6 +233,12 @@ export default class MySquadStats extends BasePlugin {
       );
     }
 
+    // GitHub answers without tag_name when the request is rate limited or the release is missing.
+    if (!latestVersion) {
+      this.verbose(1, `Unable to check for updates in ${repo}.`);
+      return;
+    }
+
     const comparisonResult = await compareVersions(
       currentVersion,
       latestVersion
