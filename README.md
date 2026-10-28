@@ -32,7 +32,6 @@
   - You WILL need to get your access token from Ignis to fully set the `config.json` file up.
   - `allowInGameStatsCommand` will allow or disallow the use of the `!mss stats` Command in your Server.
   - `allowSimpleStatsCommand` will allow players to use `!stats` as well as `!mss stats` in your Server.
-  - `usingWhitelister` and `whitelisterInstructions` are only to be used if you are both using JetDave's Whitelister AND have provided an Access Key to MySquadStats so that we can link your linked Whitelister Players.
 
 ## Releases
 
