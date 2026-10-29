@@ -33,6 +33,12 @@
   - `allowInGameStatsCommand` will allow or disallow the use of the `!mss stats` Command in your Server.
   - `allowSimpleStatsCommand` will allow players to use `!stats` as well as `!mss stats` in your Server.
 
+## When MySquadStats is down
+
+- When MySquadStats is down and its proxy answers with a 502, the plugin saves what it sends, apart from the player lists it sends every minute, in `./squad-server/MySquadStats_Data`, and sends it once MySquadStats answers again. Round ends are also saved when MySquadStats answers them with an error or does not answer at all. Other requests that get no answer, such as wounds, deaths and revives sent while the connection fails, are not saved.
+- Each server keeps its own files there, named after a short code made from its access token: `send-retry-requests-<code>.json` and `patch-retry-requests-<code>.json`. While the saved requests are being sent, `retry-done-<code>.log` lists the ones already answered, so that a restart does not send them twice. Several servers run from one SquadJS install can share the folder.
+- If you change a server's `accessToken` while requests are saved, they stay in the files of the old token and are not sent. The plugin names those files when it starts. To send them with the new token, stop SquadJS, rename them to `send-retry-requests.json` and `patch-retry-requests.json`, and start that server first: it takes them into its own files. Leave the old `retry-done-<code>.log` where it is: it names the requests already answered, which are then not sent twice. It can be deleted once the new token's `send-retry-requests-<new code>.json` and `patch-retry-requests-<new code>.json` are gone.
+
 ## Releases
 
 Releases will be given a version number with the format `v{major}.{minor}.{patch}`, e.g. `v3.1.4`. Changes to `{major}`/`{minor}`/`{patch}` will imply the following:
