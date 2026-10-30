@@ -10,7 +10,9 @@ import fs from 'fs';
 import BasePlugin from './base-plugin.js';
 
 const currentVersion = 'v6.0.4';
-let updated = false;
+// The newer version downloaded into the plugin file, which loads at the next
+// restart
+let updated = null;
 // A newer version whose download could not be written to the plugin file
 let unwritableUpdate = null;
 
@@ -408,10 +410,15 @@ export default class MySquadStats extends BasePlugin {
         JSON.stringify({ cleared: false })
       );
 
-      updated = true;
+      updated = latestVersion;
       this.verbose(
         1,
         `Successfully updated ${repo} to version ${latestVersion}. Please restart the Node.js process to apply the changes.`
+      );
+    } else if (comparisonResult < 0) {
+      this.verbose(
+        1,
+        `${repo} ${updated} has been downloaded. Please restart the Node.js process to apply it. Until then, ${currentVersion} keeps running.`
       );
     } else if (comparisonResult > 0) {
       this.verbose(
